@@ -1,0 +1,1236 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: #172033;
+  background: #eef2f7;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   ESTRUTURA PRINCIPAL
+   ========================================================= */
+
+.app-shell {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+.toolbar {
+  min-height: 70px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 18px;
+
+  padding: 10px 16px;
+
+  background: #172033;
+  color: #fff;
+
+  box-shadow:
+    0 2px 12px rgb(15 23 42 / 0.16);
+
+  z-index: 20;
+}
+
+.brand {
+  min-width: 245px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px solid #fff;
+  border-radius: 11px;
+
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand strong {
+  font-size: 16px;
+}
+
+.brand small {
+  margin-top: 2px;
+
+  color: #b8c3d6;
+
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   NOME DO DIAGRAMA
+   ========================================================= */
+
+.diagram-name {
+  width: min(330px, 28vw);
+
+  padding: 9px 11px;
+
+  border: 1px solid #3d4a60;
+  border-radius: 8px;
+
+  outline: none;
+
+  background: #202b40;
+  color: #fff;
+}
+
+.diagram-name:focus {
+  border-color: #93b4ee;
+
+  box-shadow:
+    0 0 0 3px rgb(147 180 238 / 0.15);
+}
+
+
+/* =========================================================
+   BOTÕES DA TOOLBAR
+   ========================================================= */
+
+.toolbar-group {
+  display: flex;
+  gap: 7px;
+}
+
+.toolbar-actions {
+  margin-left: auto;
+}
+
+.toolbar button {
+  padding: 8px 11px;
+
+  border: 1px solid #455169;
+  border-radius: 8px;
+
+  background: #263248;
+  color: #fff;
+
+  font-weight: 650;
+}
+
+.toolbar button:hover:not(:disabled) {
+  background: #34425c;
+}
+
+.toolbar button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toolbar .danger-outline {
+  border-color: #8e5660;
+}
+
+
+/* =========================================================
+   WORKSPACE
+   ========================================================= */
+
+.workspace {
+  min-height: 0;
+  flex: 1;
+
+  display: grid;
+
+  grid-template-columns:
+    230px
+    minmax(0, 1fr)
+    290px;
+
+  background: #fff;
+}
+
+
+/* =========================================================
+   PALETA E INSPECTOR
+   ========================================================= */
+
+.palette,
+.inspector {
+  overflow: auto;
+
+  background: #f8fafc;
+}
+
+.palette {
+  padding: 18px 14px;
+
+  border-right: 1px solid #dfe5ee;
+}
+
+.inspector {
+  padding: 18px;
+
+  border-left: 1px solid #dfe5ee;
+}
+
+.panel-heading {
+  margin-bottom: 16px;
+}
+
+.panel-heading .eyebrow {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #738097;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+}
+
+.panel-heading h2 {
+  margin: 0;
+
+  color: #172033;
+
+  font-size: 17px;
+}
+
+
+/* =========================================================
+   PALETA DE ELEMENTOS
+   ========================================================= */
+
+.palette-list {
+  display: grid;
+  gap: 8px;
+}
+
+.palette-item {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    38px
+    1fr;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 10px;
+
+  border: 1px solid #dce3ed;
+  border-radius: 10px;
+
+  background: #fff;
+  color: #1d293b;
+
+  text-align: left;
+}
+
+.palette-item:hover {
+  border-color: #9db6de;
+  background: #f4f8ff;
+}
+
+.palette-symbol {
+  font-size: 25px;
+
+  text-align: center;
+
+  line-height: 1;
+}
+
+.palette-item strong,
+.palette-item small {
+  display: block;
+}
+
+.palette-item strong {
+  font-size: 13px;
+}
+
+.palette-item small {
+  margin-top: 3px;
+
+  color: #718096;
+
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+
+/* =========================================================
+   CARDS DE AJUDA
+   ========================================================= */
+
+.palette-help,
+.legend-card,
+.info-card {
+  margin-top: 18px;
+
+  padding: 13px;
+
+  border: 1px solid #dde4ed;
+  border-radius: 10px;
+
+  background: #fff;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.palette-help p,
+.info-card p {
+  margin: 6px 0 0;
+
+  color: #68758a;
+}
+
+.legend-card {
+  display: grid;
+  gap: 7px;
+}
+
+.legend-card strong {
+  margin-bottom: 2px;
+}
+
+.legend-card div {
+  display: flex;
+
+  gap: 8px;
+
+  color: #5f6c80;
+}
+
+.legend-card div span {
+  width: 20px;
+
+  color: #1f2c43;
+
+  text-align: center;
+
+  font-size: 16px;
+}
+
+
+/* =========================================================
+   CANVAS
+   ========================================================= */
+
+.canvas-wrap {
+  position: relative;
+
+  min-width: 0;
+  min-height: 0;
+
+  background: #fff;
+}
+
+
+/* =========================================================
+   STATUS DE SALVAMENTO
+   ========================================================= */
+
+.save-status {
+  position: absolute;
+
+  left: 14px;
+  bottom: 14px;
+
+  z-index: 5;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 6px 10px;
+
+  border: 1px solid #dfe5ee;
+  border-radius: 999px;
+
+  background: rgb(255 255 255 / 0.92);
+  color: #68758a;
+
+  font-size: 11px;
+
+  box-shadow:
+    0 2px 10px rgb(15 23 42 / 0.06);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 999px;
+
+  background: #d99d39;
+}
+
+.status-dot.saved {
+  background: #4f9a6e;
+}
+
+
+/* =========================================================
+   CAMPOS DO INSPECTOR
+   ========================================================= */
+
+.field {
+  display: grid;
+
+  gap: 6px;
+
+  margin-bottom: 15px;
+}
+
+.field > span {
+  color: #536176;
+
+  font-size: 11px;
+  font-weight: 750;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.05em;
+}
+
+.field input,
+.field select {
+  width: 100%;
+
+  padding: 9px 10px;
+
+  border: 1px solid #ced7e4;
+  border-radius: 8px;
+
+  outline: none;
+
+  background: #fff;
+  color: #172033;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: #80a6df;
+
+  box-shadow:
+    0 0 0 3px rgb(128 166 223 / 0.14);
+}
+
+.field input:disabled {
+  background: #edf1f6;
+  color: #7d899a;
+}
+
+.muted {
+  color: #748197;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   CHECKBOXES
+   ========================================================= */
+
+.option-list {
+  display: grid;
+  gap: 9px;
+}
+
+.check-row {
+  display: grid;
+
+  grid-template-columns:
+    auto
+    1fr;
+
+  align-items: start;
+
+  gap: 8px;
+
+  padding: 9px;
+
+  border: 1px solid #dfe5ee;
+  border-radius: 9px;
+
+  background: #fff;
+
+  font-size: 12px;
+}
+
+.check-row input {
+  margin-top: 3px;
+}
+
+.check-row strong,
+.check-row small {
+  display: block;
+}
+
+.check-row small {
+  margin-top: 2px;
+
+  color: #7a8799;
+}
+
+.standalone-check {
+  margin-top: 6px;
+}
+
+.info-card code {
+  padding: 1px 4px;
+
+  border-radius: 4px;
+
+  background: #edf2f8;
+  color: #253451;
+}
+
+
+/* =========================================================
+   =========================================================
+   NOTAÇÃO DER / CHEN
+   =========================================================
+   ========================================================= */
+
+
+/* =========================================================
+   CONFIGURAÇÃO COMUM
+   ========================================================= */
+
+.er-node,
+.relationship-wrap,
+.isa-wrap {
+  position: relative;
+
+  display: grid;
+  place-items: center;
+
+  color: #111;
+
+  user-select: none;
+}
+
+
+/* =========================================================
+   ENTIDADE
+   Retângulo simples
+   ========================================================= */
+
+.entity-node {
+  min-width: 150px;
+  min-height: 66px;
+
+  padding: 14px 20px;
+
+  border: 3px solid #111;
+  border-radius: 0;
+
+  background: #fff;
+
+  box-shadow: none;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   ENTIDADE FRACA
+   Retângulo duplo
+   ========================================================= */
+
+.weak-entity-node {
+  min-width: 150px;
+  min-height: 66px;
+
+  padding: 5px;
+
+  border: 3px solid #111;
+  border-radius: 0;
+
+  background: #fff;
+
+  box-shadow: none;
+}
+
+.weak-inner {
+  width: 100%;
+  min-height: 50px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 8px 12px;
+
+  border: 2px solid #111;
+
+  background: #fff;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   ATRIBUTO
+   Elipse simples
+   ========================================================= */
+
+.attribute-node {
+  position: relative;
+
+  min-width: 125px;
+  min-height: 54px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 10px 18px;
+
+  border: 3px solid #111;
+  border-radius: 50%;
+
+  background: #fff;
+  box-shadow: none;
+
+  text-align: center;
+}
+
+.attribute-node > span {
+  position: relative;
+
+  z-index: 2;
+}
+
+
+/* =========================================================
+   ATRIBUTO CHAVE
+   Nome sublinhado
+   ========================================================= */
+
+.primary-key {
+  font-weight: 800;
+
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-thickness: 2px;
+
+  text-underline-offset: 3px;
+}
+
+
+/* =========================================================
+   ATRIBUTO DERIVADO
+   Elipse pontilhada
+   ========================================================= */
+
+.attribute-node.derived {
+  border-width: 3px;
+
+  border-style: dotted;
+}
+
+
+/* =========================================================
+   ATRIBUTO MULTIVALORADO
+   Elipse dupla
+   ========================================================= */
+
+.attribute-node.multivalued {
+  box-shadow: none;
+}
+
+.attribute-node.multivalued::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 6px;
+
+  border: 2px solid #111;
+
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   ATRIBUTO CHAVE + MULTIVALORADO
+   ========================================================= */
+
+.attribute-node.multivalued .primary-key {
+  text-decoration-line: underline;
+}
+
+
+/* =========================================================
+   ATRIBUTO DERIVADO + MULTIVALORADO
+   ========================================================= */
+
+.attribute-node.multivalued.derived::after {
+  border-style: dotted;
+}
+
+
+/* =========================================================
+   ATRIBUTO COMPOSTO
+
+   Não possui símbolo próprio.
+
+   Exemplo:
+
+              (Rua)
+                |
+   (Pessoa)--(Endereço)--(Número)
+                |
+             (Cidade)
+
+   ========================================================= */
+
+
+/* =========================================================
+   RELACIONAMENTO
+   LOSANGO HORIZONTAL
+   ========================================================= */
+
+.relationship-wrap {
+  position: relative;
+
+  width: 170px;
+  height: 106px;
+
+  display: grid;
+  place-items: center;
+}
+
+
+/*
+   O losango é desenhado diretamente.
+
+   Não usamos mais:
+   transform: rotate(45deg)
+
+   Isso permite controlar separadamente
+   largura e altura.
+*/
+
+.relationship-diamond {
+  position: relative;
+
+  width: 160px;
+  height: 92px;
+
+  display: block;
+
+  border: none;
+
+  background: #111;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 50%,
+    50% 100%,
+    0% 50%
+  );
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/*
+   Área branca interna.
+
+   O fundo preto do elemento funciona
+   como a borda externa.
+*/
+
+.relationship-diamond::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 3px;
+
+  background: #fff;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 50%,
+    50% 100%,
+    0% 50%
+  );
+
+  z-index: 1;
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   TEXTO DO RELACIONAMENTO
+   ========================================================= */
+
+.relationship-diamond span {
+  position: absolute;
+
+  inset: 3px;
+
+  z-index: 4;
+
+  display: grid;
+  place-items: center;
+
+  padding:
+    0
+    35px;
+
+  color: #111;
+
+  background: transparent;
+
+  text-align: center;
+
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+
+  overflow-wrap: anywhere;
+
+  transform: none;
+}
+
+
+/* =========================================================
+   RELACIONAMENTO DE IDENTIFICAÇÃO
+   LOSANGO DUPLO
+   ========================================================= */
+
+/*
+   Estrutura:
+
+   losango preto externo
+           ↓
+   área branca
+           ↓
+   losango preto interno
+           ↓
+   centro branco
+*/
+
+.relationship-diamond.identifying::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 9px;
+
+  background: #111;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 50%,
+    50% 100%,
+    0% 50%
+  );
+
+  z-index: 2;
+
+  pointer-events: none;
+}
+
+
+/*
+   O span também cria o centro branco
+   do losango interno.
+*/
+
+.relationship-diamond.identifying span {
+  inset: 12px;
+
+  display: grid;
+  place-items: center;
+
+  padding:
+    0
+    30px;
+
+  background: #fff;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 50%,
+    50% 100%,
+    0% 50%
+  );
+
+  z-index: 3;
+}
+
+
+/* =========================================================
+   GENERALIZAÇÃO / ESPECIALIZAÇÃO ISA
+   ========================================================= */
+
+.isa-wrap {
+  width: 105px;
+  height: 88px;
+}
+
+.isa-triangle {
+  position: relative;
+
+  width: 94px;
+  height: 80px;
+
+  display: grid;
+
+  place-items: end center;
+
+  padding-bottom: 12px;
+
+  background: #fff;
+
+  clip-path: polygon(
+    50% 3%,
+    97% 94%,
+    3% 94%
+  );
+}
+
+.isa-triangle::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+
+  background: #111;
+
+  clip-path: polygon(
+    50% 0,
+    100% 100%,
+    0 100%
+  );
+
+  z-index: -2;
+}
+
+.isa-triangle::after {
+  content: "";
+
+  position: absolute;
+
+  inset: 3px;
+
+  background: #fff;
+
+  clip-path: polygon(
+    50% 0,
+    100% 100%,
+    0 100%
+  );
+
+  z-index: -1;
+}
+
+.isa-triangle span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   ELEMENTO SELECIONADO
+   ========================================================= */
+
+.er-node.selected,
+.relationship-wrap.selected .relationship-diamond,
+.isa-wrap.selected .isa-triangle {
+  filter:
+    drop-shadow(
+      0 0 5px rgb(58 111 190 / 0.38)
+    );
+}
+
+
+/* =========================================================
+   HANDLES / PONTOS DE CONEXÃO
+   ========================================================= */
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+
+  background: #3f78ca;
+
+  opacity: 0.45;
+
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.er-node:hover .react-flow__handle,
+.relationship-wrap:hover .react-flow__handle,
+.isa-wrap:hover .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.25);
+}
+
+
+/* =========================================================
+   CARDINALIDADE
+   ========================================================= */
+
+.edge-cardinality {
+  position: absolute;
+
+  pointer-events: none;
+
+  padding: 2px 6px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+
+  background: rgb(255 255 255 / 0.97);
+
+  color: #111;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   ARESTAS
+   ========================================================= */
+
+.react-flow__edge-path {
+  stroke: #111;
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #315f9f;
+  stroke-width: 3;
+}
+
+
+/* =========================================================
+   CONTROLES DO REACT FLOW
+   ========================================================= */
+
+.react-flow__controls {
+  box-shadow:
+    0 2px 10px rgb(15 23 42 / 0.08);
+}
+
+.react-flow__minimap {
+  overflow: hidden;
+
+  border: 1px solid #dce3ed;
+  border-radius: 8px;
+
+  box-shadow:
+    0 2px 10px rgb(15 23 42 / 0.06);
+}
+
+
+/* =========================================================
+   STATUSBAR
+   ========================================================= */
+
+.statusbar {
+  min-height: 28px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 16px;
+
+  padding: 0 14px;
+
+  border-top: 1px solid #dfe5ee;
+
+  background: #f7f9fc;
+  color: #748197;
+
+  font-size: 10px;
+}
+
+.statusbar span:last-child {
+  margin-left: auto;
+}
+
+.hidden-input {
+  display: none;
+}
+
+
+/* =========================================================
+   RESPONSIVIDADE - TABLET
+   ========================================================= */
+
+@media (max-width: 1050px) {
+
+  .workspace {
+    grid-template-columns:
+      190px
+      minmax(0, 1fr)
+      250px;
+  }
+
+  .brand {
+    min-width: auto;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  .diagram-name {
+    width: 220px;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVIDADE - MOBILE
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-actions {
+    margin-left: 0;
+  }
+
+  .diagram-name {
+    flex: 1;
+
+    min-width: 180px;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+
+    grid-template-rows:
+      auto
+      minmax(420px, 1fr)
+      auto;
+
+    overflow: auto;
+  }
+
+  .palette {
+    border-right: 0;
+
+    border-bottom:
+      1px solid #dfe5ee;
+  }
+
+  .palette-list {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
+  .palette-help {
+    display: none;
+  }
+
+  .canvas-wrap {
+    min-height: 520px;
+  }
+
+  .inspector {
+    border-left: 0;
+
+    border-top:
+      1px solid #dfe5ee;
+  }
+
+  .statusbar {
+    display: none;
+  }
+}
