@@ -12,6 +12,10 @@ import {
 } from '@xyflow/react'
 
 import {
+  exportDiagramAsPng,
+} from './utils/exportPng'
+
+import {
   useCallback,
   useEffect,
   useMemo,
@@ -1819,6 +1823,26 @@ export default function App() {
      IMPORTAR JSON
      ======================================================= */
 
+  const handleExportPng =
+    useCallback(async () => {
+      try {
+        await exportDiagramAsPng(
+          nodes,
+          diagramName,
+        )
+      } catch (error) {
+        console.error(
+          'Erro ao exportar PNG:',
+          error,
+        )
+
+        window.alert(
+          'Não foi possível exportar o diagrama como PNG.',
+        )
+      }
+    }, [nodes, diagramName])
+
+
   const importDiagram =
     useCallback(() => {
 
@@ -2701,9 +2725,15 @@ export default function App() {
           exportDiagram
         }
 
+        onExportPng={
+          handleExportPng
+        }
+
         onImport={
           importDiagram
         }
+
+
 
         onDeleteSelected={
           deleteSelected
