@@ -11,6 +11,11 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react'
 
+
+import {
+  exportDiagramAsPdf,
+} from './utils/exportPdf'
+
 import {
   useCallback,
   useEffect,
@@ -261,7 +266,7 @@ function getEdgeNotation(
   const involvesDerivedAttribute =
     (
       sourceKind ===
-        'attribute' &&
+      'attribute' &&
       Boolean(
         sourceNode
           ?.data
@@ -270,7 +275,7 @@ function getEdgeNotation(
     ) ||
     (
       targetKind ===
-        'attribute' &&
+      'attribute' &&
       Boolean(
         targetNode
           ?.data
@@ -293,7 +298,7 @@ function getEdgeNotation(
       sourceKind,
     ) &&
     targetKind ===
-      'relationship'
+    'relationship'
   ) {
     cardinalityEndpoint =
       'source'
@@ -302,7 +307,7 @@ function getEdgeNotation(
 
   if (
     sourceKind ===
-      'relationship' &&
+    'relationship' &&
     isEntityKind(
       targetKind,
     )
@@ -339,7 +344,7 @@ function convertLegacyCardinality(
 ) {
 
   switch (
-    cardinality
+  cardinality
   ) {
 
     case 'N':
@@ -504,9 +509,9 @@ function inferRelationshipMode(
     edges.filter(
       (edge) =>
         edge.source ===
-          relationship.id ||
+        relationship.id ||
         edge.target ===
-          relationship.id,
+        relationship.id,
     )
 
 
@@ -692,13 +697,13 @@ function normalizeEdge(
   if (
     !currentData.cardinality &&
     currentData.cardinalityMode ===
-      'maximum'
+    'maximum'
   ) {
 
     if (
       currentData
         .maximumCardinality ===
-        '1'
+      '1'
     ) {
       cardinality =
         '1'
@@ -708,7 +713,7 @@ function normalizeEdge(
     if (
       currentData
         .maximumCardinality ===
-        'N'
+      'N'
     ) {
       cardinality =
         'N'
@@ -718,7 +723,7 @@ function normalizeEdge(
     if (
       currentData
         .maximumCardinality ===
-        'M'
+      'M'
     ) {
       cardinality =
         'M'
@@ -988,583 +993,583 @@ function createRelationshipEdge(
 const exampleNodes:
   ERNode[] = [
 
-  /* =====================================================
-     ENTIDADES
-     ===================================================== */
+    /* =====================================================
+       ENTIDADES
+       ===================================================== */
 
-  {
-    id: 'aluno',
-    type: 'entity',
+    {
+      id: 'aluno',
+      type: 'entity',
 
-    position: {
-      x: 180,
-      y: 280,
+      position: {
+        x: 180,
+        y: 280,
+      },
+
+      data: {
+        label:
+          'ALUNO',
+
+        kind:
+          'entity',
+      },
     },
 
-    data: {
-      label:
-        'ALUNO',
 
-      kind:
-        'entity',
-    },
-  },
+    {
+      id: 'curso',
+      type: 'entity',
 
+      position: {
+        x: 1050,
+        y: 210,
+      },
 
-  {
-    id: 'curso',
-    type: 'entity',
+      data: {
+        label:
+          'CURSO',
 
-    position: {
-      x: 1050,
-      y: 210,
-    },
-
-    data: {
-      label:
-        'CURSO',
-
-      kind:
-        'entity',
-    },
-  },
-
-
-  {
-    id: 'professor',
-    type: 'entity',
-
-    position: {
-      x: 200,
-      y: 680,
+        kind:
+          'entity',
+      },
     },
 
-    data: {
-      label:
-        'PROFESSOR',
 
-      kind:
-        'entity',
-    },
-  },
+    {
+      id: 'professor',
+      type: 'entity',
 
+      position: {
+        x: 200,
+        y: 680,
+      },
 
-  {
-    id: 'turma',
-    type: 'entity',
+      data: {
+        label:
+          'PROFESSOR',
 
-    position: {
-      x: 1050,
-      y: 680,
-    },
-
-    data: {
-      label:
-        'TURMA',
-
-      kind:
-        'entity',
-    },
-  },
-
-
-  /* =====================================================
-     RELACIONAMENTOS
-     ===================================================== */
-
-  {
-    id: 'matricula',
-    type: 'relationship',
-
-    position: {
-      x: 610,
-      y: 350,
+        kind:
+          'entity',
+      },
     },
 
-    data: {
-      label:
-        'MATRÍCULA',
 
-      kind:
-        'relationship',
+    {
+      id: 'turma',
+      type: 'entity',
 
-      cardinalityMode:
-        'maximum',
-    },
-  },
+      position: {
+        x: 1050,
+        y: 680,
+      },
 
+      data: {
+        label:
+          'TURMA',
 
-  {
-    id: 'leciona',
-    type: 'relationship',
-
-    position: {
-      x: 620,
-      y: 670,
+        kind:
+          'entity',
+      },
     },
 
-    data: {
-      label:
-        'LECIONA',
 
-      kind:
-        'relationship',
+    /* =====================================================
+       RELACIONAMENTOS
+       ===================================================== */
 
-      cardinalityMode:
-        'maximum',
-    },
-  },
+    {
+      id: 'matricula',
+      type: 'relationship',
 
+      position: {
+        x: 610,
+        y: 350,
+      },
 
-  {
-    id: 'pertence',
-    type: 'relationship',
+      data: {
+        label:
+          'MATRÍCULA',
 
-    position: {
-      x: 1045,
-      y: 465,
-    },
+        kind:
+          'relationship',
 
-    data: {
-      label:
-        'PERTENCE',
-
-      kind:
-        'relationship',
-
-      cardinalityMode:
-        'maximum',
-    },
-  },
-
-
-  /* =====================================================
-     ATRIBUTOS DE ALUNO
-     ===================================================== */
-
-  {
-    id:
-      'aluno-cpf',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 0,
-      y: 100,
+        cardinalityMode:
+          'maximum',
+      },
     },
 
-    data: {
-      label:
-        'CPF',
 
-      kind:
+    {
+      id: 'leciona',
+      type: 'relationship',
+
+      position: {
+        x: 620,
+        y: 670,
+      },
+
+      data: {
+        label:
+          'LECIONA',
+
+        kind:
+          'relationship',
+
+        cardinalityMode:
+          'maximum',
+      },
+    },
+
+
+    {
+      id: 'pertence',
+      type: 'relationship',
+
+      position: {
+        x: 1045,
+        y: 465,
+      },
+
+      data: {
+        label:
+          'PERTENCE',
+
+        kind:
+          'relationship',
+
+        cardinalityMode:
+          'maximum',
+      },
+    },
+
+
+    /* =====================================================
+       ATRIBUTOS DE ALUNO
+       ===================================================== */
+
+    {
+      id:
+        'aluno-cpf',
+
+      type:
         'attribute',
 
-      primaryKey:
-        true,
-    },
-  },
+      position: {
+        x: 0,
+        y: 100,
+      },
 
+      data: {
+        label:
+          'CPF',
 
-  {
-    id:
-      'aluno-nome',
+        kind:
+          'attribute',
 
-    type:
-      'attribute',
-
-    position: {
-      x: 0,
-      y: 210,
-    },
-
-    data: {
-      label:
-        'Nome',
-
-      kind:
-        'attribute',
-    },
-  },
-
-
-  {
-    id:
-      'aluno-data-nascimento',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 0,
-      y: 325,
+        primaryKey:
+          true,
+      },
     },
 
-    data: {
-      label:
-        'DataNascimento',
 
-      kind:
-        'attribute',
-    },
-  },
+    {
+      id:
+        'aluno-nome',
 
-
-  {
-    id:
-      'aluno-email',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 0,
-      y: 440,
-    },
-
-    data: {
-      label:
-        'Email',
-
-      kind:
-        'attribute',
-    },
-  },
-
-
-  /* =====================================================
-     ATRIBUTOS DE CURSO
-     ===================================================== */
-
-  {
-    id:
-      'curso-id',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 820,
-      y: 20,
-    },
-
-    data: {
-      label:
-        'ID_Curso',
-
-      kind:
+      type:
         'attribute',
 
-      primaryKey:
-        true,
-    },
-  },
+      position: {
+        x: 0,
+        y: 210,
+      },
 
+      data: {
+        label:
+          'Nome',
 
-  {
-    id:
-      'curso-nome',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 1000,
-      y: 10,
+        kind:
+          'attribute',
+      },
     },
 
-    data: {
-      label:
-        'Nome',
 
-      kind:
-        'attribute',
-    },
-  },
+    {
+      id:
+        'aluno-data-nascimento',
 
-
-  {
-    id:
-      'curso-carga',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 1190,
-      y: 25,
-    },
-
-    data: {
-      label:
-        'CargaHoraria',
-
-      kind:
-        'attribute',
-    },
-  },
-
-
-  {
-    id:
-      'curso-nivel',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 1320,
-      y: 135,
-    },
-
-    data: {
-      label:
-        'Nivel',
-
-      kind:
-        'attribute',
-    },
-  },
-
-
-  {
-    id:
-      'curso-area',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 1320,
-      y: 250,
-    },
-
-    data: {
-      label:
-        'Area',
-
-      kind:
-        'attribute',
-    },
-  },
-
-
-  /* =====================================================
-     ATRIBUTOS DE PROFESSOR
-     ===================================================== */
-
-  {
-    id:
-      'professor-cpf',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 20,
-      y: 570,
-    },
-
-    data: {
-      label:
-        'CPF',
-
-      kind:
+      type:
         'attribute',
 
-      primaryKey:
-        true,
-    },
-  },
+      position: {
+        x: 0,
+        y: 325,
+      },
 
+      data: {
+        label:
+          'DataNascimento',
 
-  {
-    id:
-      'professor-nome',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 20,
-      y: 680,
+        kind:
+          'attribute',
+      },
     },
 
-    data: {
-      label:
-        'Nome',
 
-      kind:
-        'attribute',
-    },
-  },
+    {
+      id:
+        'aluno-email',
 
-
-  {
-    id:
-      'professor-especialidade',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 20,
-      y: 790,
-    },
-
-    data: {
-      label:
-        'Especialidade',
-
-      kind:
-        'attribute',
-    },
-  },
-
-
-  /* =====================================================
-     ATRIBUTOS DE TURMA
-     ===================================================== */
-
-  {
-    id:
-      'turma-id',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 1320,
-      y: 530,
-    },
-
-    data: {
-      label:
-        'ID_Turma',
-
-      kind:
+      type:
         'attribute',
 
-      primaryKey:
-        true,
-    },
-  },
+      position: {
+        x: 0,
+        y: 440,
+      },
 
+      data: {
+        label:
+          'Email',
 
-  {
-    id:
-      'turma-data-inicio',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 1340,
-      y: 640,
+        kind:
+          'attribute',
+      },
     },
 
-    data: {
-      label:
-        'DataInicio',
 
-      kind:
+    /* =====================================================
+       ATRIBUTOS DE CURSO
+       ===================================================== */
+
+    {
+      id:
+        'curso-id',
+
+      type:
         'attribute',
+
+      position: {
+        x: 820,
+        y: 20,
+      },
+
+      data: {
+        label:
+          'ID_Curso',
+
+        kind:
+          'attribute',
+
+        primaryKey:
+          true,
+      },
     },
-  },
 
 
-  {
-    id:
-      'turma-data-termino',
+    {
+      id:
+        'curso-nome',
 
-    type:
-      'attribute',
-
-    position: {
-      x: 1340,
-      y: 750,
-    },
-
-    data: {
-      label:
-        'DataTermino',
-
-      kind:
+      type:
         'attribute',
+
+      position: {
+        x: 1000,
+        y: 10,
+      },
+
+      data: {
+        label:
+          'Nome',
+
+        kind:
+          'attribute',
+      },
     },
-  },
 
 
-  {
-    id:
-      'turma-turno',
+    {
+      id:
+        'curso-carga',
 
-    type:
-      'attribute',
-
-    position: {
-      x: 1190,
-      y: 850,
-    },
-
-    data: {
-      label:
-        'Turno',
-
-      kind:
+      type:
         'attribute',
-    },
-  },
 
+      position: {
+        x: 1190,
+        y: 25,
+      },
 
-  /* =====================================================
-     ATRIBUTOS DE MATRÍCULA
-     ===================================================== */
+      data: {
+        label:
+          'CargaHoraria',
 
-  {
-    id:
-      'matricula-data',
-
-    type:
-      'attribute',
-
-    position: {
-      x: 500,
-      y: 490,
+        kind:
+          'attribute',
+      },
     },
 
-    data: {
-      label:
-        'DataMatricula',
 
-      kind:
+    {
+      id:
+        'curso-nivel',
+
+      type:
         'attribute',
+
+      position: {
+        x: 1320,
+        y: 135,
+      },
+
+      data: {
+        label:
+          'Nivel',
+
+        kind:
+          'attribute',
+      },
     },
-  },
 
 
-  {
-    id:
-      'matricula-nota',
+    {
+      id:
+        'curso-area',
 
-    type:
-      'attribute',
-
-    position: {
-      x: 710,
-      y: 490,
-    },
-
-    data: {
-      label:
-        'NotaFinal',
-
-      kind:
+      type:
         'attribute',
+
+      position: {
+        x: 1320,
+        y: 250,
+      },
+
+      data: {
+        label:
+          'Area',
+
+        kind:
+          'attribute',
+      },
     },
-  },
-]
+
+
+    /* =====================================================
+       ATRIBUTOS DE PROFESSOR
+       ===================================================== */
+
+    {
+      id:
+        'professor-cpf',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 20,
+        y: 570,
+      },
+
+      data: {
+        label:
+          'CPF',
+
+        kind:
+          'attribute',
+
+        primaryKey:
+          true,
+      },
+    },
+
+
+    {
+      id:
+        'professor-nome',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 20,
+        y: 680,
+      },
+
+      data: {
+        label:
+          'Nome',
+
+        kind:
+          'attribute',
+      },
+    },
+
+
+    {
+      id:
+        'professor-especialidade',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 20,
+        y: 790,
+      },
+
+      data: {
+        label:
+          'Especialidade',
+
+        kind:
+          'attribute',
+      },
+    },
+
+
+    /* =====================================================
+       ATRIBUTOS DE TURMA
+       ===================================================== */
+
+    {
+      id:
+        'turma-id',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 1320,
+        y: 530,
+      },
+
+      data: {
+        label:
+          'ID_Turma',
+
+        kind:
+          'attribute',
+
+        primaryKey:
+          true,
+      },
+    },
+
+
+    {
+      id:
+        'turma-data-inicio',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 1340,
+        y: 640,
+      },
+
+      data: {
+        label:
+          'DataInicio',
+
+        kind:
+          'attribute',
+      },
+    },
+
+
+    {
+      id:
+        'turma-data-termino',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 1340,
+        y: 750,
+      },
+
+      data: {
+        label:
+          'DataTermino',
+
+        kind:
+          'attribute',
+      },
+    },
+
+
+    {
+      id:
+        'turma-turno',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 1190,
+        y: 850,
+      },
+
+      data: {
+        label:
+          'Turno',
+
+        kind:
+          'attribute',
+      },
+    },
+
+
+    /* =====================================================
+       ATRIBUTOS DE MATRÍCULA
+       ===================================================== */
+
+    {
+      id:
+        'matricula-data',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 500,
+        y: 490,
+      },
+
+      data: {
+        label:
+          'DataMatricula',
+
+        kind:
+          'attribute',
+      },
+    },
+
+
+    {
+      id:
+        'matricula-nota',
+
+      type:
+        'attribute',
+
+      position: {
+        x: 710,
+        y: 490,
+      },
+
+      data: {
+        label:
+          'NotaFinal',
+
+        kind:
+          'attribute',
+      },
+    },
+  ]
 
 
 /* =========================================================
@@ -1574,259 +1579,259 @@ const exampleNodes:
 const exampleEdges:
   EREdge[] = [
 
-  /* =====================================================
-     ATRIBUTOS DE ALUNO
-     ===================================================== */
+    /* =====================================================
+       ATRIBUTOS DE ALUNO
+       ===================================================== */
 
-  createAttributeEdge(
-    'e-aluno-cpf',
-    'aluno',
-    'aluno-cpf',
-    'left',
-    'right',
-  ),
-
-
-  createAttributeEdge(
-    'e-aluno-nome',
-    'aluno',
-    'aluno-nome',
-    'left',
-    'right',
-  ),
+    createAttributeEdge(
+      'e-aluno-cpf',
+      'aluno',
+      'aluno-cpf',
+      'left',
+      'right',
+    ),
 
 
-  createAttributeEdge(
-    'e-aluno-data',
-    'aluno',
-    'aluno-data-nascimento',
-    'left',
-    'right',
-  ),
+    createAttributeEdge(
+      'e-aluno-nome',
+      'aluno',
+      'aluno-nome',
+      'left',
+      'right',
+    ),
 
 
-  createAttributeEdge(
-    'e-aluno-email',
-    'aluno',
-    'aluno-email',
-    'left',
-    'right',
-  ),
+    createAttributeEdge(
+      'e-aluno-data',
+      'aluno',
+      'aluno-data-nascimento',
+      'left',
+      'right',
+    ),
 
 
-  /* =====================================================
-     ATRIBUTOS DE CURSO
-     ===================================================== */
-
-  createAttributeEdge(
-    'e-curso-id',
-    'curso',
-    'curso-id',
-    'top',
-    'bottom',
-  ),
+    createAttributeEdge(
+      'e-aluno-email',
+      'aluno',
+      'aluno-email',
+      'left',
+      'right',
+    ),
 
 
-  createAttributeEdge(
-    'e-curso-nome',
-    'curso',
-    'curso-nome',
-    'top',
-    'bottom',
-  ),
+    /* =====================================================
+       ATRIBUTOS DE CURSO
+       ===================================================== */
+
+    createAttributeEdge(
+      'e-curso-id',
+      'curso',
+      'curso-id',
+      'top',
+      'bottom',
+    ),
 
 
-  createAttributeEdge(
-    'e-curso-carga',
-    'curso',
-    'curso-carga',
-    'top',
-    'bottom',
-  ),
+    createAttributeEdge(
+      'e-curso-nome',
+      'curso',
+      'curso-nome',
+      'top',
+      'bottom',
+    ),
 
 
-  createAttributeEdge(
-    'e-curso-nivel',
-    'curso',
-    'curso-nivel',
-    'right',
-    'left',
-  ),
+    createAttributeEdge(
+      'e-curso-carga',
+      'curso',
+      'curso-carga',
+      'top',
+      'bottom',
+    ),
 
 
-  createAttributeEdge(
-    'e-curso-area',
-    'curso',
-    'curso-area',
-    'right',
-    'left',
-  ),
+    createAttributeEdge(
+      'e-curso-nivel',
+      'curso',
+      'curso-nivel',
+      'right',
+      'left',
+    ),
 
 
-  /* =====================================================
-     ATRIBUTOS DE PROFESSOR
-     ===================================================== */
-
-  createAttributeEdge(
-    'e-professor-cpf',
-    'professor',
-    'professor-cpf',
-    'left',
-    'right',
-  ),
+    createAttributeEdge(
+      'e-curso-area',
+      'curso',
+      'curso-area',
+      'right',
+      'left',
+    ),
 
 
-  createAttributeEdge(
-    'e-professor-nome',
-    'professor',
-    'professor-nome',
-    'left',
-    'right',
-  ),
+    /* =====================================================
+       ATRIBUTOS DE PROFESSOR
+       ===================================================== */
+
+    createAttributeEdge(
+      'e-professor-cpf',
+      'professor',
+      'professor-cpf',
+      'left',
+      'right',
+    ),
 
 
-  createAttributeEdge(
-    'e-professor-especialidade',
-    'professor',
-    'professor-especialidade',
-    'left',
-    'right',
-  ),
+    createAttributeEdge(
+      'e-professor-nome',
+      'professor',
+      'professor-nome',
+      'left',
+      'right',
+    ),
 
 
-  /* =====================================================
-     ATRIBUTOS DE TURMA
-     ===================================================== */
-
-  createAttributeEdge(
-    'e-turma-id',
-    'turma',
-    'turma-id',
-    'right',
-    'left',
-  ),
+    createAttributeEdge(
+      'e-professor-especialidade',
+      'professor',
+      'professor-especialidade',
+      'left',
+      'right',
+    ),
 
 
-  createAttributeEdge(
-    'e-turma-data-inicio',
-    'turma',
-    'turma-data-inicio',
-    'right',
-    'left',
-  ),
+    /* =====================================================
+       ATRIBUTOS DE TURMA
+       ===================================================== */
+
+    createAttributeEdge(
+      'e-turma-id',
+      'turma',
+      'turma-id',
+      'right',
+      'left',
+    ),
 
 
-  createAttributeEdge(
-    'e-turma-data-termino',
-    'turma',
-    'turma-data-termino',
-    'right',
-    'left',
-  ),
+    createAttributeEdge(
+      'e-turma-data-inicio',
+      'turma',
+      'turma-data-inicio',
+      'right',
+      'left',
+    ),
 
 
-  createAttributeEdge(
-    'e-turma-turno',
-    'turma',
-    'turma-turno',
-    'bottom',
-    'top',
-  ),
+    createAttributeEdge(
+      'e-turma-data-termino',
+      'turma',
+      'turma-data-termino',
+      'right',
+      'left',
+    ),
 
 
-  /* =====================================================
-     ATRIBUTOS DE MATRÍCULA
-     ===================================================== */
-
-  createAttributeEdge(
-    'e-matricula-data',
-    'matricula',
-    'matricula-data',
-    'bottom',
-    'top',
-  ),
+    createAttributeEdge(
+      'e-turma-turno',
+      'turma',
+      'turma-turno',
+      'bottom',
+      'top',
+    ),
 
 
-  createAttributeEdge(
-    'e-matricula-nota',
-    'matricula',
-    'matricula-nota',
-    'bottom',
-    'top',
-  ),
+    /* =====================================================
+       ATRIBUTOS DE MATRÍCULA
+       ===================================================== */
+
+    createAttributeEdge(
+      'e-matricula-data',
+      'matricula',
+      'matricula-data',
+      'bottom',
+      'top',
+    ),
 
 
-  /* =====================================================
-     ALUNO N : N TURMA
-     ===================================================== */
-
-  createRelationshipEdge(
-    'e-aluno-matricula',
-    'aluno',
-    'matricula',
-    'N',
-    'right',
-    'left',
-  ),
+    createAttributeEdge(
+      'e-matricula-nota',
+      'matricula',
+      'matricula-nota',
+      'bottom',
+      'top',
+    ),
 
 
-  createRelationshipEdge(
-    'e-turma-matricula',
-    'turma',
-    'matricula',
-    'N',
-    'top',
-    'right',
-  ),
+    /* =====================================================
+       ALUNO N : N TURMA
+       ===================================================== */
+
+    createRelationshipEdge(
+      'e-aluno-matricula',
+      'aluno',
+      'matricula',
+      'N',
+      'right',
+      'left',
+    ),
 
 
-  /* =====================================================
-     PROFESSOR 1 : N TURMA
-     ===================================================== */
-
-  createRelationshipEdge(
-    'e-professor-leciona',
-    'professor',
-    'leciona',
-    '1',
-    'right',
-    'left',
-  ),
+    createRelationshipEdge(
+      'e-turma-matricula',
+      'turma',
+      'matricula',
+      'N',
+      'top',
+      'right',
+    ),
 
 
-  createRelationshipEdge(
-    'e-turma-leciona',
-    'turma',
-    'leciona',
-    'N',
-    'left',
-    'right',
-  ),
+    /* =====================================================
+       PROFESSOR 1 : N TURMA
+       ===================================================== */
+
+    createRelationshipEdge(
+      'e-professor-leciona',
+      'professor',
+      'leciona',
+      '1',
+      'right',
+      'left',
+    ),
 
 
-  /* =====================================================
-     CURSO 1 : N TURMA
-     ===================================================== */
-
-  createRelationshipEdge(
-    'e-curso-pertence',
-    'curso',
-    'pertence',
-    '1',
-    'bottom',
-    'top',
-  ),
+    createRelationshipEdge(
+      'e-turma-leciona',
+      'turma',
+      'leciona',
+      'N',
+      'left',
+      'right',
+    ),
 
 
-  createRelationshipEdge(
-    'e-turma-pertence',
-    'turma',
-    'pertence',
-    'N',
-    'top',
-    'bottom',
-  ),
-]
+    /* =====================================================
+       CURSO 1 : N TURMA
+       ===================================================== */
+
+    createRelationshipEdge(
+      'e-curso-pertence',
+      'curso',
+      'pertence',
+      '1',
+      'bottom',
+      'top',
+    ),
+
+
+    createRelationshipEdge(
+      'e-turma-pertence',
+      'turma',
+      'pertence',
+      'N',
+      'top',
+      'bottom',
+    ),
+  ]
 
 
 /* =========================================================
@@ -1885,7 +1890,7 @@ function loadDiagram():
 
     if (
       parsed.version !==
-        1 ||
+      1 ||
       !Array.isArray(
         parsed.nodes,
       ) ||
@@ -1974,11 +1979,11 @@ function makeNode(
 
       ...(
         kind ===
-        'relationship'
+          'relationship'
           ? {
-              cardinalityMode:
-                'maximum' as const,
-            }
+            cardinalityMode:
+              'maximum' as const,
+          }
           : {}
       ),
     },
@@ -2083,9 +2088,9 @@ function isConnectionAllowed(
 
   if (
     sourceKind ===
-      'relationship' &&
+    'relationship' &&
     targetKind ===
-      'relationship'
+    'relationship'
   ) {
     return false
   }
@@ -2566,23 +2571,23 @@ export default function App() {
           notation
             .showCardinality
             ? {
-                cardinalityMode:
-                  relationshipMode,
+              cardinalityMode:
+                relationshipMode,
 
-                cardinality:
-                  '1' as MaximumCardinality,
+              cardinality:
+                '1' as MaximumCardinality,
 
-                minimumCardinality:
-                  '0',
+              minimumCardinality:
+                '0',
 
-                maximumCardinality:
-                  '1',
+              maximumCardinality:
+                '1',
 
-                ...notation,
-              }
+              ...notation,
+            }
             : {
-                ...notation,
-              }
+              ...notation,
+            }
 
 
         setEdges(
@@ -2791,9 +2796,9 @@ export default function App() {
         if (
           (
             nodes.length >
-              0 ||
+            0 ||
             edges.length >
-              0
+            0
           ) &&
           !window.confirm(
             'Criar um novo diagrama em branco? O modelo atual será substituído.',
@@ -2828,9 +2833,9 @@ export default function App() {
         if (
           (
             nodes.length >
-              0 ||
+            0 ||
             edges.length >
-              0
+            0
           ) &&
           !window.confirm(
             'Carregar o exemplo TechMaster? O diagrama atual será substituído.',
@@ -2850,6 +2855,44 @@ export default function App() {
         nodes.length,
         edges.length,
         setDiagram,
+      ],
+    )
+
+
+  /* =========================================================
+ EXPORTAR PDF
+ ========================================================= */
+
+  const handleExportPdf =
+    useCallback(
+      async () => {
+
+        try {
+
+          await exportDiagramAsPdf(
+            nodes,
+            diagramName,
+          )
+
+        } catch (error) {
+
+          console.error(
+            'Erro ao exportar PDF:',
+            error,
+          )
+
+          window.alert(
+            nodes.length === 0
+              ? 'Não há elementos no diagrama para exportar.'
+              : 'Não foi possível exportar o diagrama como PDF.',
+          )
+
+        }
+
+      },
+      [
+        nodes,
+        diagramName,
       ],
     )
 
@@ -2910,14 +2953,13 @@ export default function App() {
 
 
         anchor.download =
-          `${
-            diagramName
-              .trim()
-              .replace(
-                /[^a-zA-Z0-9_-]+/g,
-                '-',
-              ) ||
-            'modelo-er'
+          `${diagramName
+            .trim()
+            .replace(
+              /[^a-zA-Z0-9_-]+/g,
+              '-',
+            ) ||
+          'modelo-er'
           }.json`
 
 
@@ -3013,7 +3055,7 @@ export default function App() {
 
           if (
             parsed.version !==
-              1 ||
+            1 ||
             !Array.isArray(
               parsed.nodes,
             ) ||
@@ -3077,7 +3119,7 @@ export default function App() {
               (node) =>
                 node.selected ||
                 node.id ===
-                  selectedNodeId,
+                selectedNodeId,
             )
 
             .map(
@@ -3109,7 +3151,7 @@ export default function App() {
               (edge) =>
                 edge.selected ||
                 edge.id ===
-                  selectedEdgeId,
+                selectedEdgeId,
             )
 
             .map(
@@ -3386,9 +3428,9 @@ export default function App() {
 
         if (
           selectedNodeIds.size ===
-            0 &&
+          0 &&
           selectedEdgeIds.size ===
-            0
+          0
         ) {
           return
         }
@@ -3466,9 +3508,9 @@ export default function App() {
 
         if (
           selectedNodeIds.size ===
-            0 &&
+          0 &&
           selectedEdgeIds.size ===
-            0
+          0
         ) {
           return
         }
@@ -3748,9 +3790,9 @@ export default function App() {
 
                 if (
                   edge.source !==
-                    updated.id &&
+                  updated.id &&
                   edge.target !==
-                    updated.id
+                  updated.id
                 ) {
                   return edge
                 }
@@ -3935,6 +3977,10 @@ export default function App() {
 
         onExportPng={
           handleExportPng
+        }
+
+        onExportPdf={
+          handleExportPdf
         }
 
         onImport={

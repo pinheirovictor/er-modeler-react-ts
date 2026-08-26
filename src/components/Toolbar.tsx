@@ -5,6 +5,7 @@ type Props = {
   onExample: () => void
   onExport: () => void
   onExportPng: () => void
+  onExportPdf: () => void
   onImport: () => void
   onDeleteSelected: () => void
   hasSelection: boolean
@@ -17,6 +18,7 @@ export function Toolbar({
   onExample,
   onExport,
   onExportPng,
+  onExportPdf,
   onImport,
   onDeleteSelected,
   hasSelection,
@@ -72,6 +74,15 @@ export function Toolbar({
           title="Exportar diagrama como imagem PNG"
         >
           Exportar PNG
+        </button>
+
+        <button
+          type="button"
+          onClick={
+            onExportPdf
+          }
+        >
+          Exportar PDF
         </button>
 
         <button
