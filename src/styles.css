@@ -91,7 +91,7 @@ button {
 }
 
 .brand-mark {
-  width: 42px;
+  width: 46px;
   height: 42px;
 
   display: grid;
@@ -100,8 +100,10 @@ button {
   border: 2px solid #fff;
   border-radius: 11px;
 
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: -1px;
+
+  letter-spacing: -0.5px;
 }
 
 .brand strong,
@@ -564,8 +566,7 @@ button {
    ========================================================= */
 
 .er-node,
-.relationship-wrap,
-.isa-wrap {
+.relationship-wrap {
   position: relative;
 
   display: grid;
@@ -660,26 +661,93 @@ button {
   text-align: center;
 }
 
-.attribute-node > span {
+
+/*
+ * O texto do atributo precisa ser position: relative
+ * porque o sublinhado tracejado da chave parcial é
+ * desenhado por um pseudo-elemento.
+ */
+
+.attribute-label {
   position: relative;
 
   z-index: 2;
+
+  display: inline-block;
 }
 
 
 /* =========================================================
-   ATRIBUTO CHAVE
-   Nome sublinhado
+   ATRIBUTO-CHAVE / CHAVE PRIMÁRIA
+   Nome com sublinhado contínuo
    ========================================================= */
 
-.primary-key {
+.attribute-label.primary-key {
   font-weight: 800;
 
   text-decoration-line: underline;
   text-decoration-style: solid;
   text-decoration-thickness: 2px;
 
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
+}
+
+
+/* =========================================================
+   ATRIBUTO-CHAVE PARCIAL
+   Chave discriminadora de entidade fraca
+
+   Notação de Chen:
+   nome com sublinhado tracejado.
+   ========================================================= */
+
+.attribute-label.partial-key {
+  font-weight: 800;
+
+  /*
+   * Removemos qualquer text-decoration para que
+   * apenas o tracejado desenhado abaixo apareça.
+   */
+
+  text-decoration: none;
+}
+
+
+/*
+ * Sublinhado tracejado.
+ *
+ * Utilizamos ::after em vez de
+ * text-decoration-style: dashed para obter
+ * resultado mais consistente entre navegadores
+ * e também na exportação para PNG.
+ */
+
+.attribute-label.partial-key::after {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  right: 0;
+
+  bottom: -4px;
+
+  border-bottom: 2px dashed #111;
+
+  pointer-events: none;
+}
+
+
+/*
+ * Proteção adicional:
+ *
+ * Caso primaryKey e partialKey acabem true por
+ * dados importados antigos ou manipulação manual,
+ * a chave parcial prevalece visualmente.
+ */
+
+.attribute-label.primary-key.partial-key {
+  text-decoration: none;
 }
 
 
@@ -720,11 +788,22 @@ button {
 
 
 /* =========================================================
-   ATRIBUTO CHAVE + MULTIVALORADO
+   CHAVE PRIMÁRIA + MULTIVALORADO
    ========================================================= */
 
-.attribute-node.multivalued .primary-key {
+.attribute-node.multivalued
+.attribute-label.primary-key {
   text-decoration-line: underline;
+}
+
+
+/* =========================================================
+   CHAVE PARCIAL + MULTIVALORADO
+   ========================================================= */
+
+.attribute-node.multivalued
+.attribute-label.partial-key::after {
+  border-bottom-style: dashed;
 }
 
 
@@ -742,6 +821,9 @@ button {
 
    Não possui símbolo próprio.
 
+   É representado pela conexão entre
+   um atributo principal e seus componentes.
+
    Exemplo:
 
               (Rua)
@@ -755,7 +837,7 @@ button {
 
 /* =========================================================
    RELACIONAMENTO
-   LOSANGO HORIZONTAL
+   Losango horizontal
    ========================================================= */
 
 .relationship-wrap {
@@ -770,14 +852,13 @@ button {
 
 
 /*
-   O losango é desenhado diretamente.
-
-   Não usamos mais:
-   transform: rotate(45deg)
-
-   Isso permite controlar separadamente
-   largura e altura.
-*/
+ * O losango é desenhado diretamente utilizando clip-path.
+ *
+ * Não utilizamos transform: rotate(45deg).
+ *
+ * Isso permite controlar largura e altura
+ * independentemente.
+ */
 
 .relationship-diamond {
   position: relative;
@@ -805,11 +886,11 @@ button {
 
 
 /*
-   Área branca interna.
-
-   O fundo preto do elemento funciona
-   como a borda externa.
-*/
+ * Área branca interna.
+ *
+ * O fundo preto do elemento funciona
+ * como a borda externa.
+ */
 
 .relationship-diamond::before {
   content: "";
@@ -868,21 +949,21 @@ button {
 
 
 /* =========================================================
-   RELACIONAMENTO DE IDENTIFICAÇÃO
-   LOSANGO DUPLO
+   RELACIONAMENTO IDENTIFICADOR
+   Losango duplo
    ========================================================= */
 
 /*
-   Estrutura:
-
-   losango preto externo
-           ↓
-   área branca
-           ↓
-   losango preto interno
-           ↓
-   centro branco
-*/
+ * Estrutura:
+ *
+ * losango preto externo
+ *          ↓
+ * área branca
+ *          ↓
+ * losango preto interno
+ *          ↓
+ * centro branco
+ */
 
 .relationship-diamond.identifying::after {
   content: "";
@@ -907,9 +988,9 @@ button {
 
 
 /*
-   O span também cria o centro branco
-   do losango interno.
-*/
+ * O span também cria o centro branco
+ * do losango interno.
+ */
 
 .relationship-diamond.identifying span {
   inset: 12px;
@@ -935,84 +1016,12 @@ button {
 
 
 /* =========================================================
-   GENERALIZAÇÃO / ESPECIALIZAÇÃO ISA
-   ========================================================= */
-
-.isa-wrap {
-  width: 105px;
-  height: 88px;
-}
-
-.isa-triangle {
-  position: relative;
-
-  width: 94px;
-  height: 80px;
-
-  display: grid;
-
-  place-items: end center;
-
-  padding-bottom: 12px;
-
-  background: #fff;
-
-  clip-path: polygon(
-    50% 3%,
-    97% 94%,
-    3% 94%
-  );
-}
-
-.isa-triangle::before {
-  content: "";
-
-  position: absolute;
-
-  inset: 0;
-
-  background: #111;
-
-  clip-path: polygon(
-    50% 0,
-    100% 100%,
-    0 100%
-  );
-
-  z-index: -2;
-}
-
-.isa-triangle::after {
-  content: "";
-
-  position: absolute;
-
-  inset: 3px;
-
-  background: #fff;
-
-  clip-path: polygon(
-    50% 0,
-    100% 100%,
-    0 100%
-  );
-
-  z-index: -1;
-}
-
-.isa-triangle span {
-  font-size: 12px;
-  font-weight: 800;
-}
-
-
-/* =========================================================
    ELEMENTO SELECIONADO
    ========================================================= */
 
 .er-node.selected,
-.relationship-wrap.selected .relationship-diamond,
-.isa-wrap.selected .isa-triangle {
+.relationship-wrap.selected
+.relationship-diamond {
   filter:
     drop-shadow(
       0 0 5px rgb(58 111 190 / 0.38)
@@ -1040,9 +1049,10 @@ button {
     transform 0.15s ease;
 }
 
-.er-node:hover .react-flow__handle,
-.relationship-wrap:hover .react-flow__handle,
-.isa-wrap:hover .react-flow__handle {
+.er-node:hover
+.react-flow__handle,
+.relationship-wrap:hover
+.react-flow__handle {
   opacity: 1;
 }
 
@@ -1085,7 +1095,8 @@ button {
   stroke-width: 2;
 }
 
-.react-flow__edge.selected .react-flow__edge-path {
+.react-flow__edge.selected
+.react-flow__edge-path {
   stroke: #315f9f;
   stroke-width: 3;
 }
@@ -1136,6 +1147,11 @@ button {
 .statusbar span:last-child {
   margin-left: auto;
 }
+
+
+/* =========================================================
+   ELEMENTOS OCULTOS
+   ========================================================= */
 
 .hidden-input {
   display: none;

@@ -36,12 +36,28 @@ export type ERNodeData = {
   label: string
   kind: ERNodeKind
 
-  /* Atributos */
+  /* =====================================================
+     PROPRIEDADES DE ATRIBUTOS
+     ===================================================== */
+
+  /* Chave primária */
   primaryKey?: boolean
+
+  /* Chave parcial / discriminadora de entidade fraca */
+  partialKey?: boolean
+
+  /* Atributo multivalorado */
   multivalued?: boolean
+
+  /* Atributo derivado */
   derived?: boolean
 
-  /* Relacionamento identificador */
+
+  /* =====================================================
+     PROPRIEDADES DE RELACIONAMENTOS
+     ===================================================== */
+
+  /* Relacionamento identificador de entidade fraca */
   identifying?: boolean
 }
 
@@ -65,7 +81,10 @@ export type EREdgeData = {
   sourceCardinality: Cardinality
   targetCardinality: Cardinality
 
+  /* Exibe ou oculta as cardinalidades */
   showCardinality?: boolean
+
+  /* Ligação tracejada, usada atualmente em atributo derivado */
   dashed?: boolean
 }
 

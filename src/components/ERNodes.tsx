@@ -1,5 +1,15 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import {
+  Handle,
+  Position,
+  type NodeProps,
+} from '@xyflow/react'
+
 import type { ERNode } from '../types'
+
+
+/* =========================================================
+   PONTOS DE CONEXÃO
+   ========================================================= */
 
 function ConnectionHandles() {
   return (
@@ -35,57 +45,153 @@ function ConnectionHandles() {
   )
 }
 
-export function EntityNode({ data, selected }: NodeProps<ERNode>) {
-  return (
-    <div className={`er-node entity-node ${selected ? 'selected' : ''}`}>
-      <ConnectionHandles />
-      <strong>{data.label}</strong>
-    </div>
-  )
-}
 
-export function WeakEntityNode({ data, selected }: NodeProps<ERNode>) {
-  return (
-    <div className={`er-node entity-node weak-entity-node ${selected ? 'selected' : ''}`}>
-      <ConnectionHandles />
-      <div className="weak-inner"><strong>{data.label}</strong></div>
-    </div>
-  )
-}
+/* =========================================================
+   ENTIDADE
+   ========================================================= */
 
-export function AttributeNode({ data, selected }: NodeProps<ERNode>) {
+export function EntityNode({
+  data,
+  selected,
+}: NodeProps<ERNode>) {
   return (
     <div
       className={[
         'er-node',
-        'attribute-node',
-        data.multivalued ? 'multivalued' : '',
-        data.derived ? 'derived' : '',
+        'entity-node',
         selected ? 'selected' : '',
-      ].join(' ')}
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       <ConnectionHandles />
-      <span className={data.primaryKey ? 'primary-key' : ''}>{data.label}</span>
+
+      <strong>
+        {data.label}
+      </strong>
     </div>
   )
 }
 
-export function RelationshipNode({ data, selected }: NodeProps<ERNode>) {
+
+/* =========================================================
+   ENTIDADE FRACA
+   ========================================================= */
+
+export function WeakEntityNode({
+  data,
+  selected,
+}: NodeProps<ERNode>) {
   return (
-    <div className={`relationship-wrap ${selected ? 'selected' : ''}`}>
+    <div
+      className={[
+        'er-node',
+        'entity-node',
+        'weak-entity-node',
+        selected ? 'selected' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <ConnectionHandles />
-      <div className={`relationship-diamond ${data.identifying ? 'identifying' : ''}`}>
-        <span>{data.label}</span>
+
+      <div className="weak-inner">
+        <strong>
+          {data.label}
+        </strong>
       </div>
     </div>
   )
 }
 
-// export function IsaNode({ data, selected }: NodeProps<ERNode>) {
-//   return (
-//     <div className={`isa-wrap ${selected ? 'selected' : ''}`}>
-//       <ConnectionHandles />
-//       <div className="isa-triangle"><span>{data.label || 'ISA'}</span></div>
-//     </div>
-//   )
-// }
+
+/* =========================================================
+   ATRIBUTO
+   ========================================================= */
+
+export function AttributeNode({
+  data,
+  selected,
+}: NodeProps<ERNode>) {
+  return (
+    <div
+      className={[
+        'er-node',
+        'attribute-node',
+
+        data.multivalued
+          ? 'multivalued'
+          : '',
+
+        data.derived
+          ? 'derived'
+          : '',
+
+        selected
+          ? 'selected'
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <ConnectionHandles />
+
+      <span
+        className={[
+          'attribute-label',
+
+          data.primaryKey
+            ? 'primary-key'
+            : '',
+
+          data.partialKey
+            ? 'partial-key'
+            : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {data.label}
+      </span>
+    </div>
+  )
+}
+
+
+/* =========================================================
+   RELACIONAMENTO
+   ========================================================= */
+
+export function RelationshipNode({
+  data,
+  selected,
+}: NodeProps<ERNode>) {
+  return (
+    <div
+      className={[
+        'relationship-wrap',
+        selected ? 'selected' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <ConnectionHandles />
+
+      <div
+        className={[
+          'relationship-diamond',
+
+          data.identifying
+            ? 'identifying'
+            : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <span>
+          {data.label}
+        </span>
+      </div>
+    </div>
+  )
+}
