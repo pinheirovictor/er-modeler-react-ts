@@ -214,7 +214,8 @@ button {
 
 .palette,
 .inspector {
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   background: #f8fafc;
 }
@@ -225,20 +226,33 @@ button {
   border-right: 1px solid #dfe5ee;
 }
 
+
+/* =========================================================
+   INSPECTOR
+   ========================================================= */
+
 .inspector {
-  padding: 18px;
+  padding:
+    20px
+    16px
+    28px;
 
   border-left: 1px solid #dfe5ee;
 }
 
+
+/* =========================================================
+   CABEÇALHO DOS PAINÉIS
+   ========================================================= */
+
 .panel-heading {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .panel-heading .eyebrow {
   display: block;
 
-  margin-bottom: 3px;
+  margin-bottom: 5px;
 
   color: #738097;
 
@@ -254,6 +268,7 @@ button {
   color: #172033;
 
   font-size: 17px;
+  line-height: 1.25;
 }
 
 
@@ -329,8 +344,6 @@ button {
 .palette-help,
 .legend-card,
 .info-card {
-  margin-top: 18px;
-
   padding: 13px;
 
   border: 1px solid #dde4ed;
@@ -342,24 +355,44 @@ button {
   line-height: 1.5;
 }
 
-.palette-help p,
-.info-card p {
-  margin: 6px 0 0;
+
+/* =========================================================
+   AJUDA DA PALETA
+   ========================================================= */
+
+.palette-help {
+  margin-top: 18px;
+}
+
+.palette-help p {
+  margin:
+    7px
+    0
+    0;
 
   color: #68758a;
 }
 
+
+/* =========================================================
+   CARD DE LEGENDA
+   ========================================================= */
+
 .legend-card {
   display: grid;
-  gap: 7px;
+
+  gap: 8px;
+
+  margin-top: 20px;
 }
 
 .legend-card strong {
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .legend-card div {
   display: flex;
+  align-items: center;
 
   gap: 8px;
 
@@ -369,11 +402,57 @@ button {
 .legend-card div span {
   width: 20px;
 
+  flex: 0 0 20px;
+
   color: #1f2c43;
 
   text-align: center;
 
   font-size: 16px;
+}
+
+
+/* =========================================================
+   CARD DE INFORMAÇÃO
+   ========================================================= */
+
+.info-card {
+  margin-top: 8px;
+
+  padding: 14px;
+}
+
+.info-card strong {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #263248;
+}
+
+.info-card p {
+  margin: 0;
+
+  color: #68758a;
+
+  line-height: 1.5;
+}
+
+.info-card p + p {
+  margin-top: 8px;
+}
+
+.info-card code {
+  padding:
+    1px
+    4px;
+
+  border-radius: 4px;
+
+  background: #edf2f8;
+  color: #253451;
+
+  font-size: 0.95em;
 }
 
 
@@ -441,18 +520,26 @@ button {
    ========================================================= */
 
 .field {
-  display: grid;
+  display: flex;
+  flex-direction: column;
 
-  gap: 6px;
+  gap: 7px;
 
-  margin-bottom: 15px;
+  margin:
+    0
+    0
+    18px;
 }
 
 .field > span {
+  display: block;
+
   color: #536176;
 
   font-size: 11px;
   font-weight: 750;
+
+  line-height: 1.25;
 
   text-transform: uppercase;
 
@@ -462,8 +549,11 @@ button {
 .field input,
 .field select {
   width: 100%;
+  min-height: 40px;
 
-  padding: 9px 10px;
+  padding:
+    9px
+    10px;
 
   border: 1px solid #ced7e4;
   border-radius: 8px;
@@ -472,6 +562,16 @@ button {
 
   background: #fff;
   color: #172033;
+
+  line-height: 1.3;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.field select {
+  cursor: pointer;
 }
 
 .field input:focus,
@@ -485,9 +585,21 @@ button {
 .field input:disabled {
   background: #edf1f6;
   color: #7d899a;
+
+  cursor: not-allowed;
 }
 
+
+/* =========================================================
+   TEXTO AUXILIAR
+   ========================================================= */
+
 .muted {
+  margin:
+    0
+    0
+    20px;
+
   color: #748197;
 
   font-size: 13px;
@@ -500,22 +612,30 @@ button {
    ========================================================= */
 
 .option-list {
-  display: grid;
-  gap: 9px;
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  margin-top: 2px;
 }
 
 .check-row {
+  width: 100%;
+
   display: grid;
 
   grid-template-columns:
     auto
-    1fr;
+    minmax(0, 1fr);
 
   align-items: start;
 
-  gap: 8px;
+  gap: 10px;
 
-  padding: 9px;
+  padding:
+    11px
+    12px;
 
   border: 1px solid #dfe5ee;
   border-radius: 9px;
@@ -525,8 +645,17 @@ button {
   font-size: 12px;
 }
 
-.check-row input {
-  margin-top: 3px;
+.check-row input[type="checkbox"] {
+  margin:
+    2px
+    0
+    0;
+
+  flex-shrink: 0;
+}
+
+.check-row > span {
+  min-width: 0;
 }
 
 .check-row strong,
@@ -534,23 +663,56 @@ button {
   display: block;
 }
 
+.check-row strong {
+  color: #253047;
+
+  line-height: 1.25;
+}
+
 .check-row small {
-  margin-top: 2px;
+  margin-top: 3px;
 
   color: #7a8799;
+
+  font-size: 10px;
+  line-height: 1.4;
 }
+
+
+/* =========================================================
+   CHECKBOX ISOLADO
+   Ex.: relacionamento identificador
+   ========================================================= */
 
 .standalone-check {
-  margin-top: 6px;
+  margin:
+    3px
+    0
+    20px;
 }
 
-.info-card code {
-  padding: 1px 4px;
 
-  border-radius: 4px;
+/* =========================================================
+   RELACIONAMENTO - ESPAÇAMENTO ENTRE SEÇÕES
+   ========================================================= */
 
-  background: #edf2f8;
-  color: #253451;
+/*
+ * Após o card de "Identificador", o campo
+ * "Notação de cardinalidade" ganha uma separação
+ * visual clara.
+ */
+
+.standalone-check + .field {
+  margin-top: 2px;
+}
+
+
+/*
+ * Card informativo imediatamente após um campo.
+ */
+
+.field + .info-card {
+  margin-top: 2px;
 }
 
 
@@ -696,18 +858,10 @@ button {
 /* =========================================================
    ATRIBUTO-CHAVE PARCIAL
    Chave discriminadora de entidade fraca
-
-   Notação de Chen:
-   nome com sublinhado tracejado.
    ========================================================= */
 
 .attribute-label.partial-key {
   font-weight: 800;
-
-  /*
-   * Removemos qualquer text-decoration para que
-   * apenas o tracejado desenhado abaixo apareça.
-   */
 
   text-decoration: none;
 }
@@ -715,11 +869,6 @@ button {
 
 /*
  * Sublinhado tracejado.
- *
- * Utilizamos ::after em vez de
- * text-decoration-style: dashed para obter
- * resultado mais consistente entre navegadores
- * e também na exportação para PNG.
  */
 
 .attribute-label.partial-key::after {
@@ -739,11 +888,9 @@ button {
 
 
 /*
- * Proteção adicional:
- *
- * Caso primaryKey e partialKey acabem true por
- * dados importados antigos ou manipulação manual,
- * a chave parcial prevalece visualmente.
+ * Caso primaryKey e partialKey acabem true
+ * simultaneamente, a chave parcial prevalece
+ * visualmente.
  */
 
 .attribute-label.primary-key.partial-key {
@@ -823,15 +970,6 @@ button {
 
    É representado pela conexão entre
    um atributo principal e seus componentes.
-
-   Exemplo:
-
-              (Rua)
-                |
-   (Pessoa)--(Endereço)--(Número)
-                |
-             (Cidade)
-
    ========================================================= */
 
 
@@ -853,11 +991,6 @@ button {
 
 /*
  * O losango é desenhado diretamente utilizando clip-path.
- *
- * Não utilizamos transform: rotate(45deg).
- *
- * Isso permite controlar largura e altura
- * independentemente.
  */
 
 .relationship-diamond {
@@ -887,9 +1020,6 @@ button {
 
 /*
  * Área branca interna.
- *
- * O fundo preto do elemento funciona
- * como a borda externa.
  */
 
 .relationship-diamond::before {
@@ -952,18 +1082,6 @@ button {
    RELACIONAMENTO IDENTIFICADOR
    Losango duplo
    ========================================================= */
-
-/*
- * Estrutura:
- *
- * losango preto externo
- *          ↓
- * área branca
- *          ↓
- * losango preto interno
- *          ↓
- * centro branco
- */
 
 .relationship-diamond.identifying::after {
   content: "";
@@ -1070,17 +1188,21 @@ button {
 
   pointer-events: none;
 
-  padding: 2px 6px;
+  padding:
+    2px
+    4px;
 
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
+  border: none;
+  border-radius: 2px;
 
-  background: rgb(255 255 255 / 0.97);
+  background: rgb(255 255 255 / 0.96);
 
   color: #111;
 
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
+
+  line-height: 1.2;
 
   white-space: nowrap;
 }
@@ -1134,7 +1256,9 @@ button {
 
   gap: 16px;
 
-  padding: 0 14px;
+  padding:
+    0
+    14px;
 
   border-top: 1px solid #dfe5ee;
 
@@ -1168,7 +1292,7 @@ button {
     grid-template-columns:
       190px
       minmax(0, 1fr)
-      250px;
+      270px;
   }
 
   .brand {
@@ -1181,6 +1305,13 @@ button {
 
   .diagram-name {
     width: 220px;
+  }
+
+  .inspector {
+    padding:
+      18px
+      14px
+      26px;
   }
 }
 
@@ -1240,6 +1371,11 @@ button {
   }
 
   .inspector {
+    padding:
+      20px
+      16px
+      28px;
+
     border-left: 0;
 
     border-top:

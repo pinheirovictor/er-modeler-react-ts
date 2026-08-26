@@ -1,7 +1,8 @@
 import type {
-  Cardinality,
+  CardinalityMode,
   EREdge,
   ERNode,
+  MaximumCardinality,
 } from '../types'
 
 
@@ -19,20 +20,6 @@ type Props = {
 
 
 /* =========================================================
-   CARDINALIDADES
-   ========================================================= */
-
-const cardinalities: Cardinality[] = [
-  '1',
-  'N',
-  '0..1',
-  '1..1',
-  '0..N',
-  '1..N',
-]
-
-
-/* =========================================================
    NOMES DOS ELEMENTOS
    ========================================================= */
 
@@ -45,6 +32,17 @@ const kindLabels: Record<
   attribute: 'Atributo',
   relationship: 'Relacionamento',
 }
+
+
+/* =========================================================
+   CARDINALIDADES MÁXIMAS
+   ========================================================= */
+
+const maximumCardinalities: MaximumCardinality[] = [
+  '1',
+  'N',
+  'M',
+]
 
 
 /* =========================================================
@@ -82,6 +80,7 @@ export function Inspector({
         </p>
 
         <div className="legend-card">
+
           <strong>
             Notação usada
           </strong>
@@ -105,6 +104,7 @@ export function Inspector({
             <span>◇</span>
             Relacionamento
           </div>
+
         </div>
 
       </aside>
@@ -140,6 +140,7 @@ export function Inspector({
             ================================================= */}
 
         <div className="panel-heading">
+
           <span className="eyebrow">
             PROPRIEDADES
           </span>
@@ -147,6 +148,7 @@ export function Inspector({
           <h2>
             {kindLabels[node.data.kind]}
           </h2>
+
         </div>
 
 
@@ -155,6 +157,7 @@ export function Inspector({
             ================================================= */}
 
         <label className="field">
+
           <span>
             Nome
           </span>
@@ -167,6 +170,7 @@ export function Inspector({
               })
             }
           />
+
         </label>
 
 
@@ -175,22 +179,29 @@ export function Inspector({
             ================================================= */}
 
         <label className="field">
+
           <span>
             Tipo
           </span>
 
           <input
-            value={kindLabels[node.data.kind]}
+            value={
+              kindLabels[
+                node.data.kind
+              ]
+            }
             disabled
           />
+
         </label>
 
 
         {/* =================================================
-            PROPRIEDADES DO ATRIBUTO
+            ATRIBUTO
             ================================================= */}
 
         {node.data.kind === 'attribute' && (
+
           <div className="option-list">
 
             {/* =============================================
@@ -198,38 +209,42 @@ export function Inspector({
                 ============================================= */}
 
             <label className="check-row">
+
               <input
                 type="checkbox"
-                checked={Boolean(
-                  node.data.primaryKey,
-                )}
+                checked={
+                  Boolean(
+                    node.data.primaryKey,
+                  )
+                }
                 onChange={(event) => {
+
                   const checked =
                     event.target.checked
 
                   updateData({
                     primaryKey: checked,
 
-                    /*
-                     * Chave primária e chave parcial
-                     * são mutuamente exclusivas.
-                     */
-                    partialKey: checked
-                      ? false
-                      : node.data.partialKey,
+                    partialKey:
+                      checked
+                        ? false
+                        : node.data.partialKey,
                   })
                 }}
               />
 
               <span>
+
                 <strong>
                   Chave primária
                 </strong>
 
                 <small>
-                  Nome com sublinhado contínuo
+                  Sublinhado contínuo
                 </small>
+
               </span>
+
             </label>
 
 
@@ -238,30 +253,32 @@ export function Inspector({
                 ============================================= */}
 
             <label className="check-row">
+
               <input
                 type="checkbox"
-                checked={Boolean(
-                  node.data.partialKey,
-                )}
+                checked={
+                  Boolean(
+                    node.data.partialKey,
+                  )
+                }
                 onChange={(event) => {
+
                   const checked =
                     event.target.checked
 
                   updateData({
                     partialKey: checked,
 
-                    /*
-                     * Ao marcar chave parcial,
-                     * a chave primária é desmarcada.
-                     */
-                    primaryKey: checked
-                      ? false
-                      : node.data.primaryKey,
+                    primaryKey:
+                      checked
+                        ? false
+                        : node.data.primaryKey,
                   })
                 }}
               />
 
               <span>
+
                 <strong>
                   Chave parcial
                 </strong>
@@ -270,7 +287,9 @@ export function Inspector({
                   Sublinhado tracejado — utilizada
                   na identificação de entidade fraca
                 </small>
+
               </span>
+
             </label>
 
 
@@ -279,11 +298,14 @@ export function Inspector({
                 ============================================= */}
 
             <label className="check-row">
+
               <input
                 type="checkbox"
-                checked={Boolean(
-                  node.data.multivalued,
-                )}
+                checked={
+                  Boolean(
+                    node.data.multivalued,
+                  )
+                }
                 onChange={(event) =>
                   updateData({
                     multivalued:
@@ -293,6 +315,7 @@ export function Inspector({
               />
 
               <span>
+
                 <strong>
                   Multivalorado
                 </strong>
@@ -300,7 +323,9 @@ export function Inspector({
                 <small>
                   Elipse dupla
                 </small>
+
               </span>
+
             </label>
 
 
@@ -309,11 +334,14 @@ export function Inspector({
                 ============================================= */}
 
             <label className="check-row">
+
               <input
                 type="checkbox"
-                checked={Boolean(
-                  node.data.derived,
-                )}
+                checked={
+                  Boolean(
+                    node.data.derived,
+                  )
+                }
                 onChange={(event) =>
                   updateData({
                     derived:
@@ -323,6 +351,7 @@ export function Inspector({
               />
 
               <span>
+
                 <strong>
                   Derivado
                 </strong>
@@ -330,7 +359,9 @@ export function Inspector({
                 <small>
                   Elipse com contorno tracejado
                 </small>
+
               </span>
+
             </label>
 
           </div>
@@ -338,35 +369,138 @@ export function Inspector({
 
 
         {/* =================================================
-            PROPRIEDADES DO RELACIONAMENTO
+            RELACIONAMENTO
             ================================================= */}
 
         {node.data.kind === 'relationship' && (
-          <label className="check-row standalone-check">
-            <input
-              type="checkbox"
-              checked={Boolean(
-                node.data.identifying,
-              )}
-              onChange={(event) =>
-                updateData({
-                  identifying:
-                    event.target.checked,
-                })
-              }
-            />
 
-            <span>
+          <>
+
+            {/* =============================================
+                RELACIONAMENTO IDENTIFICADOR
+                ============================================= */}
+
+            <label className="check-row standalone-check">
+
+              <input
+                type="checkbox"
+                checked={
+                  Boolean(
+                    node.data.identifying,
+                  )
+                }
+                onChange={(event) =>
+                  updateData({
+                    identifying:
+                      event.target.checked,
+                  })
+                }
+              />
+
+              <span>
+
+                <strong>
+                  Identificador
+                </strong>
+
+                <small>
+                  Relacionamento identificador
+                  representado por losango duplo
+                </small>
+
+              </span>
+
+            </label>
+
+
+            {/* =============================================
+                MODO DE CARDINALIDADE
+                ============================================= */}
+
+            <label className="field">
+
+              <span>
+                Notação de cardinalidade
+              </span>
+
+              <select
+                value={
+                  node.data.cardinalityMode ??
+                  'maximum'
+                }
+                onChange={(event) => {
+
+                  const value =
+                    event.target.value as CardinalityMode
+
+                  updateData({
+                    cardinalityMode:
+                      value,
+                  })
+                }}
+              >
+
+                <option value="maximum">
+                  Somente cardinalidade máxima
+                </option>
+
+                <option value="minmax">
+                  Cardinalidade mínima e máxima
+                </option>
+
+              </select>
+
+            </label>
+
+
+            {/* =============================================
+                AJUDA
+                ============================================= */}
+
+            <div className="info-card">
+
               <strong>
-                Identificador
+                Representação
               </strong>
 
-              <small>
-                Relacionamento identificador
-                representado por losango duplo
-              </small>
-            </span>
-          </label>
+              {(
+                node.data.cardinalityMode ??
+                'maximum'
+              ) === 'maximum' ? (
+
+                <p>
+                  Cada participação apresenta apenas
+                  sua cardinalidade máxima:
+                  {' '}
+                  <code>1</code>,
+                  {' '}
+                  <code>N</code>
+                  {' '}
+                  ou
+                  {' '}
+                  <code>M</code>.
+                </p>
+
+              ) : (
+
+                <p>
+                  Cada participação apresenta os
+                  valores mínimo e máximo, como
+                  {' '}
+                  <code>(0,1)</code>,
+                  {' '}
+                  <code>(1,1)</code>
+                  {' '}
+                  ou
+                  {' '}
+                  <code>(1,N)</code>.
+                </p>
+
+              )}
+
+            </div>
+
+          </>
         )}
 
       </aside>
@@ -375,52 +509,137 @@ export function Inspector({
 
 
   /* =======================================================
-     ARESTA SELECIONADA
+     LIGAÇÃO SELECIONADA
      ======================================================= */
 
-  const selectedEdge = edge as EREdge
+  const selectedEdge =
+    edge as EREdge
 
-  const edgeData = selectedEdge.data ?? {
-    sourceCardinality: '1' as Cardinality,
-    targetCardinality: 'N' as Cardinality,
+
+  const edgeData =
+    selectedEdge.data ?? {}
+
+
+  /* =======================================================
+     LIGAÇÃO SEM CARDINALIDADE
+     ======================================================= */
+
+  if (
+    edgeData.showCardinality === false
+  ) {
+    return (
+      <aside className="inspector">
+
+        <div className="panel-heading">
+
+          <span className="eyebrow">
+            PROPRIEDADES
+          </span>
+
+          <h2>
+            Ligação
+          </h2>
+
+        </div>
+
+
+        <div className="info-card">
+
+          <strong>
+            Ligação estrutural
+          </strong>
+
+          <p>
+            Esta ligação não utiliza cardinalidade.
+            Cardinalidades são utilizadas nas
+            participações entre entidades e
+            relacionamentos.
+          </p>
+
+        </div>
+
+      </aside>
+    )
   }
 
 
   /* =======================================================
-     ATUALIZAR CARDINALIDADE DA ORIGEM
+     MODO DA CARDINALIDADE
      ======================================================= */
 
-  const updateSourceCardinality = (
+  /*
+   * O App.tsx deve sincronizar este campo com
+   * cardinalityMode do relacionamento.
+   *
+   * Mantemos fallback "maximum" para diagramas antigos.
+   */
+
+  const mode =
+    edgeData.cardinalityMode ??
+    'maximum'
+
+
+  /* =======================================================
+     CARDINALIDADE MÁXIMA
+     ======================================================= */
+
+  const cardinality:
+    MaximumCardinality =
+    edgeData.cardinality ??
+    '1'
+
+
+  /* =======================================================
+     MIN-MAX
+     ======================================================= */
+
+  const minimum =
+    edgeData.minimumCardinality ??
+    '0'
+
+
+  const maximum =
+    edgeData.maximumCardinality ??
+    '1'
+
+
+  /* =======================================================
+     SANITIZAR MÍNIMO
+     ======================================================= */
+
+  const sanitizeMinimum = (
     value: string,
   ) => {
-    onChangeEdge({
-      ...selectedEdge,
-
-      data: {
-        ...edgeData,
-        sourceCardinality:
-          value as Cardinality,
-      },
-    })
+    return value.replace(
+      /\D/g,
+      '',
+    )
   }
 
 
   /* =======================================================
-     ATUALIZAR CARDINALIDADE DO DESTINO
+     SANITIZAR MÁXIMO MIN-MAX
      ======================================================= */
 
-  const updateTargetCardinality = (
+  const sanitizeMaximum = (
     value: string,
   ) => {
-    onChangeEdge({
-      ...selectedEdge,
 
-      data: {
-        ...edgeData,
-        targetCardinality:
-          value as Cardinality,
-      },
-    })
+    const upper =
+      value.toUpperCase()
+
+
+    if (
+      upper.includes('N')
+    ) {
+      return 'N'
+    }
+
+
+    return upper.replace(
+      /\D/g,
+      '',
+    )
   }
 
 
@@ -432,6 +651,7 @@ export function Inspector({
           =================================================== */}
 
       <div className="panel-heading">
+
         <span className="eyebrow">
           PROPRIEDADES
         </span>
@@ -439,120 +659,228 @@ export function Inspector({
         <h2>
           Ligação
         </h2>
+
       </div>
 
 
       {/* ===================================================
-          CARDINALIDADE DA ORIGEM
-          =================================================== */}
-
-      <label className="field">
-        <span>
-          Cardinalidade na origem
-        </span>
-
-        <select
-          value={
-            edgeData.sourceCardinality
-          }
-          onChange={(event) =>
-            updateSourceCardinality(
-              event.target.value,
-            )
-          }
-        >
-          {cardinalities.map(
-            (item) => (
-              <option
-                key={item}
-                value={item}
-              >
-                {item}
-              </option>
-            ),
-          )}
-        </select>
-      </label>
-
-
-      {/* ===================================================
-          CARDINALIDADE DO DESTINO
-          =================================================== */}
-
-      <label className="field">
-        <span>
-          Cardinalidade no destino
-        </span>
-
-        <select
-          value={
-            edgeData.targetCardinality
-          }
-          onChange={(event) =>
-            updateTargetCardinality(
-              event.target.value,
-            )
-          }
-        >
-          {cardinalities.map(
-            (item) => (
-              <option
-                key={item}
-                value={item}
-              >
-                {item}
-              </option>
-            ),
-          )}
-        </select>
-      </label>
-
-
-      {/* ===================================================
-          AJUDA
+          INFORMAÇÃO DO MODO
           =================================================== */}
 
       <div className="info-card">
+
         <strong>
-          Cardinalidades
+          Notação atual
         </strong>
 
         <p>
-          <code>1</code>
-          {' '}
-          representa uma ocorrência.
-          {' '}
-          <code>N</code>
-          {' '}
-          representa muitas ocorrências.
+          {mode === 'maximum'
+            ? 'Somente cardinalidade máxima.'
+            : 'Cardinalidade mínima e máxima.'}
         </p>
 
         <p>
-          <code>0..1</code>
-          {' '}
-          representa zero ou uma ocorrência.
+          Para alterar o tipo de notação,
+          selecione o relacionamento.
         </p>
 
-        <p>
-          <code>1..1</code>
-          {' '}
-          representa participação obrigatória
-          e única.
-        </p>
-
-        <p>
-          <code>0..N</code>
-          {' '}
-          representa participação opcional
-          com muitas ocorrências.
-        </p>
-
-        <p>
-          <code>1..N</code>
-          {' '}
-          representa uma ou muitas ocorrências.
-        </p>
       </div>
+
+
+      {/* ===================================================
+          SOMENTE CARDINALIDADE MÁXIMA
+          =================================================== */}
+
+      {mode === 'maximum' && (
+
+        <label className="field">
+
+          <span>
+            Cardinalidade
+          </span>
+
+          <select
+            value={cardinality}
+            onChange={(event) => {
+
+              const value =
+                event.target.value as MaximumCardinality
+
+              onChangeEdge({
+                ...selectedEdge,
+
+                data: {
+                  ...edgeData,
+
+                  cardinalityMode:
+                    'maximum',
+
+                  cardinality:
+                    value,
+                },
+              })
+            }}
+          >
+
+            {maximumCardinalities.map(
+              (item) => (
+
+                <option
+                  key={item}
+                  value={item}
+                >
+                  {item}
+                </option>
+
+              ),
+            )}
+
+          </select>
+
+        </label>
+
+      )}
+
+
+      {/* ===================================================
+          CARDINALIDADE MÍNIMA E MÁXIMA
+          =================================================== */}
+
+      {mode === 'minmax' && (
+
+        <>
+
+          {/* ===============================================
+              MÍNIMA
+              =============================================== */}
+
+          <label className="field">
+
+            <span>
+              Cardinalidade mínima
+            </span>
+
+            <input
+              type="text"
+              inputMode="numeric"
+              value={minimum}
+              placeholder="0"
+              onChange={(event) => {
+
+                const value =
+                  sanitizeMinimum(
+                    event.target.value,
+                  )
+
+                onChangeEdge({
+                  ...selectedEdge,
+
+                  data: {
+                    ...edgeData,
+
+                    cardinalityMode:
+                      'minmax',
+
+                    minimumCardinality:
+                      value,
+                  },
+                })
+              }}
+            />
+
+          </label>
+
+
+          {/* ===============================================
+              MÁXIMA
+              =============================================== */}
+
+          <label className="field">
+
+            <span>
+              Cardinalidade máxima
+            </span>
+
+            <input
+              type="text"
+              value={maximum}
+              placeholder="N"
+              onChange={(event) => {
+
+                const value =
+                  sanitizeMaximum(
+                    event.target.value,
+                  )
+
+                onChangeEdge({
+                  ...selectedEdge,
+
+                  data: {
+                    ...edgeData,
+
+                    cardinalityMode:
+                      'minmax',
+
+                    maximumCardinality:
+                      value,
+                  },
+                })
+              }}
+            />
+
+          </label>
+
+
+          {/* ===============================================
+              AJUDA MIN-MAX
+              =============================================== */}
+
+          <div className="info-card">
+
+            <strong>
+              Notação min–max
+            </strong>
+
+            <p>
+              <code>(0,1)</code>
+              {' '}
+              — zero ou uma ocorrência.
+            </p>
+
+            <p>
+              <code>(1,1)</code>
+              {' '}
+              — exatamente uma ocorrência.
+            </p>
+
+            <p>
+              <code>(0,N)</code>
+              {' '}
+              — zero ou muitas ocorrências.
+            </p>
+
+            <p>
+              <code>(1,N)</code>
+              {' '}
+              — uma ou muitas ocorrências.
+            </p>
+
+            <p>
+              Também podem ser utilizados valores
+              como
+              {' '}
+              <code>(4,N)</code>
+              {' '}
+              e
+              {' '}
+              <code>(2,5)</code>.
+            </p>
+
+          </div>
+
+        </>
+
+      )}
 
     </aside>
   )

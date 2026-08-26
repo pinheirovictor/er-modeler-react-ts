@@ -12,10 +12,6 @@ import {
 } from '@xyflow/react'
 
 import {
-  exportDiagramAsPng,
-} from './utils/exportPng'
-
-import {
   useCallback,
   useEffect,
   useMemo,
@@ -23,9 +19,17 @@ import {
   useState,
 } from 'react'
 
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import {
+  exportDiagramAsPng,
+} from './utils/exportPng'
 
-import { EREdgeComponent } from './components/EREdge'
+import {
+  useKeyboardShortcuts,
+} from './hooks/useKeyboardShortcuts'
+
+import {
+  EREdgeComponent,
+} from './components/EREdge'
 
 import {
   AttributeNode,
@@ -34,15 +38,27 @@ import {
   WeakEntityNode,
 } from './components/ERNodes'
 
-import { Inspector } from './components/Inspector'
-import { Palette } from './components/Palette'
-import { Toolbar } from './components/Toolbar'
+import {
+  Inspector,
+} from './components/Inspector'
+
+import {
+  Palette,
+} from './components/Palette'
+
+import {
+  Toolbar,
+} from './components/Toolbar'
 
 import type {
+  Cardinality,
+  CardinalityEndpoint,
+  CardinalityMode,
   ERDiagram,
   EREdge,
   ERNode,
   ERNodeKind,
+  MaximumCardinality,
 } from './types'
 
 
@@ -50,9 +66,11 @@ import type {
    CONFIGURAÇÃO
    ========================================================= */
 
-const STORAGE_KEY = 'er-studio-diagram-v1'
+const STORAGE_KEY =
+  'er-studio-diagram-v1'
 
-const MAX_HISTORY = 100
+const MAX_HISTORY =
+  100
 
 
 /* =========================================================
@@ -70,18 +88,27 @@ type DiagramClipboard = {
   edges: EREdge[]
 }
 
-type CardinalityValue =
-  | '0..1'
-  | '1'
-  | '0..N'
-  | '1..N'
-  | 'N'
-
 type HandleSide =
   | 'top'
   | 'right'
   | 'bottom'
   | 'left'
+
+
+/* =========================================================
+   HELPERS DE TIPO
+   ========================================================= */
+
+function isEntityKind(
+  kind:
+    ERNodeKind |
+    undefined,
+) {
+  return (
+    kind === 'entity' ||
+    kind === 'weakEntity'
+  )
+}
 
 
 /* =========================================================
@@ -99,61 +126,856 @@ function getEmptyDiagram(): ERDiagram {
 
 
 /* =========================================================
+   LOCALIZAR RELACIONAMENTO DE UMA ARESTA
+   ========================================================= */
+
+function getRelationshipNodeForEdge(
+  sourceId:
+    string |
+    null |
+    undefined,
+
+  targetId:
+    string |
+    null |
+    undefined,
+
+  nodes:
+    ERNode[],
+) {
+
+  const sourceNode =
+    nodes.find(
+      (node) =>
+        node.id === sourceId,
+    )
+
+
+  const targetNode =
+    nodes.find(
+      (node) =>
+        node.id === targetId,
+    )
+
+
+  if (
+    sourceNode?.data.kind ===
+    'relationship'
+  ) {
+    return sourceNode
+  }
+
+
+  if (
+    targetNode?.data.kind ===
+    'relationship'
+  ) {
+    return targetNode
+  }
+
+
+  return undefined
+}
+
+
+/* =========================================================
+   MODO DE CARDINALIDADE DO RELACIONAMENTO
+   ========================================================= */
+
+function getRelationshipModeForEdge(
+  sourceId:
+    string |
+    null |
+    undefined,
+
+  targetId:
+    string |
+    null |
+    undefined,
+
+  nodes:
+    ERNode[],
+):
+  CardinalityMode |
+  undefined {
+
+  const relationship =
+    getRelationshipNodeForEdge(
+      sourceId,
+      targetId,
+      nodes,
+    )
+
+
+  return relationship
+    ?.data
+    .cardinalityMode
+}
+
+
+/* =========================================================
+   NOTAÇÃO DAS LIGAÇÕES
+   ========================================================= */
+
+function getEdgeNotation(
+  sourceId:
+    string |
+    null |
+    undefined,
+
+  targetId:
+    string |
+    null |
+    undefined,
+
+  nodes:
+    ERNode[],
+) {
+
+  const sourceNode =
+    nodes.find(
+      (node) =>
+        node.id === sourceId,
+    )
+
+
+  const targetNode =
+    nodes.find(
+      (node) =>
+        node.id === targetId,
+    )
+
+
+  const sourceKind =
+    sourceNode?.data.kind
+
+
+  const targetKind =
+    targetNode?.data.kind
+
+
+  /* =====================================================
+     ATRIBUTO DERIVADO
+     ===================================================== */
+
+  const involvesDerivedAttribute =
+    (
+      sourceKind ===
+        'attribute' &&
+      Boolean(
+        sourceNode
+          ?.data
+          .derived,
+      )
+    ) ||
+    (
+      targetKind ===
+        'attribute' &&
+      Boolean(
+        targetNode
+          ?.data
+          .derived,
+      )
+    )
+
+
+  /* =====================================================
+     EXTREMIDADE DA ENTIDADE
+     ===================================================== */
+
+  let cardinalityEndpoint:
+    CardinalityEndpoint |
+    undefined
+
+
+  if (
+    isEntityKind(
+      sourceKind,
+    ) &&
+    targetKind ===
+      'relationship'
+  ) {
+    cardinalityEndpoint =
+      'source'
+  }
+
+
+  if (
+    sourceKind ===
+      'relationship' &&
+    isEntityKind(
+      targetKind,
+    )
+  ) {
+    cardinalityEndpoint =
+      'target'
+  }
+
+
+  return {
+    showCardinality:
+      Boolean(
+        cardinalityEndpoint,
+      ),
+
+    cardinalityEndpoint,
+
+    dashed:
+      Boolean(
+        involvesDerivedAttribute,
+      ),
+  }
+}
+
+
+/* =========================================================
+   CONVERTER CARDINALIDADE ANTIGA
+   ========================================================= */
+
+function convertLegacyCardinality(
+  cardinality:
+    Cardinality |
+    undefined,
+) {
+
+  switch (
+    cardinality
+  ) {
+
+    case 'N':
+      return {
+        mode:
+          'maximum' as const,
+
+        cardinality:
+          'N' as MaximumCardinality,
+
+        minimum:
+          '0',
+
+        maximum:
+          'N',
+      }
+
+
+    case '0..1':
+      return {
+        mode:
+          'minmax' as const,
+
+        cardinality:
+          '1' as MaximumCardinality,
+
+        minimum:
+          '0',
+
+        maximum:
+          '1',
+      }
+
+
+    case '1..1':
+      return {
+        mode:
+          'minmax' as const,
+
+        cardinality:
+          '1' as MaximumCardinality,
+
+        minimum:
+          '1',
+
+        maximum:
+          '1',
+      }
+
+
+    case '0..N':
+      return {
+        mode:
+          'minmax' as const,
+
+        cardinality:
+          'N' as MaximumCardinality,
+
+        minimum:
+          '0',
+
+        maximum:
+          'N',
+      }
+
+
+    case '1..N':
+      return {
+        mode:
+          'minmax' as const,
+
+        cardinality:
+          'N' as MaximumCardinality,
+
+        minimum:
+          '1',
+
+        maximum:
+          'N',
+      }
+
+
+    case '1':
+
+    default:
+      return {
+        mode:
+          'maximum' as const,
+
+        cardinality:
+          '1' as MaximumCardinality,
+
+        minimum:
+          '0',
+
+        maximum:
+          '1',
+      }
+  }
+}
+
+
+/* =========================================================
+   CARDINALIDADE ANTIGA DA EXTREMIDADE DA ENTIDADE
+   ========================================================= */
+
+function getLegacyCardinality(
+  edge:
+    EREdge,
+
+  endpoint:
+    CardinalityEndpoint |
+    undefined,
+) {
+
+  if (
+    endpoint ===
+    'target'
+  ) {
+    return edge
+      .data
+      ?.targetCardinality
+  }
+
+
+  return edge
+    .data
+    ?.sourceCardinality
+}
+
+
+/* =========================================================
+   INFERIR MODO DE RELACIONAMENTO ANTIGO
+   ========================================================= */
+
+function inferRelationshipMode(
+  relationship:
+    ERNode,
+
+  edges:
+    EREdge[],
+):
+  CardinalityMode {
+
+  /*
+   * Se o relacionamento já possui o modo
+   * atual, ele é a fonte oficial.
+   */
+
+  if (
+    relationship
+      .data
+      .cardinalityMode
+  ) {
+    return relationship
+      .data
+      .cardinalityMode
+  }
+
+
+  const connectedEdges =
+    edges.filter(
+      (edge) =>
+        edge.source ===
+          relationship.id ||
+        edge.target ===
+          relationship.id,
+    )
+
+
+  /*
+   * Versão intermediária do DERLab:
+   * cardinalityMode estava na aresta.
+   */
+
+  if (
+    connectedEdges.some(
+      (edge) =>
+        edge.data
+          ?.cardinalityMode ===
+        'minmax',
+    )
+  ) {
+    return 'minmax'
+  }
+
+
+  /*
+   * Versão antiga:
+   *
+   * 0..1
+   * 1..1
+   * 0..N
+   * 1..N
+   */
+
+  for (
+    const edge
+    of connectedEdges
+  ) {
+
+    const notation =
+      getEdgeNotation(
+        edge.source,
+        edge.target,
+        [
+          relationship,
+          ...[],
+        ],
+      )
+
+
+    /*
+     * Como acima não temos todos os nós,
+     * verificamos os dois campos antigos.
+     */
+
+    const values = [
+      edge.data
+        ?.sourceCardinality,
+
+      edge.data
+        ?.targetCardinality,
+    ]
+
+
+    if (
+      values.some(
+        (value) =>
+          value === '0..1' ||
+          value === '1..1' ||
+          value === '0..N' ||
+          value === '1..N',
+      )
+    ) {
+      return 'minmax'
+    }
+
+
+    void notation
+  }
+
+
+  return 'maximum'
+}
+
+
+/* =========================================================
+   NORMALIZAR ARESTA
+   ========================================================= */
+
+function normalizeEdge(
+  edge:
+    EREdge,
+
+  nodes:
+    ERNode[],
+): EREdge {
+
+  const notation =
+    getEdgeNotation(
+      edge.source,
+      edge.target,
+      nodes,
+    )
+
+
+  const currentData =
+    edge.data ?? {}
+
+
+  /* =====================================================
+     LIGAÇÃO QUE NÃO POSSUI CARDINALIDADE
+     ===================================================== */
+
+  if (
+    !notation.showCardinality
+  ) {
+    return {
+      ...edge,
+
+      type:
+        'erEdge',
+
+      data: {
+        ...currentData,
+
+        showCardinality:
+          false,
+
+        cardinalityEndpoint:
+          undefined,
+
+        dashed:
+          notation.dashed,
+      },
+    }
+  }
+
+
+  /* =====================================================
+     MODO DO RELACIONAMENTO
+     ===================================================== */
+
+  const relationshipMode =
+    getRelationshipModeForEdge(
+      edge.source,
+      edge.target,
+      nodes,
+    ) ??
+    currentData
+      .cardinalityMode ??
+    'maximum'
+
+
+  /* =====================================================
+     MODELO ANTIGO
+     ===================================================== */
+
+  const legacyValue =
+    getLegacyCardinality(
+      edge,
+      notation
+        .cardinalityEndpoint,
+    )
+
+
+  const legacy =
+    convertLegacyCardinality(
+      legacyValue,
+    )
+
+
+  /* =====================================================
+     CARDINALIDADE MÁXIMA SIMPLES
+     ===================================================== */
+
+  let cardinality:
+    MaximumCardinality =
+    currentData.cardinality ??
+    legacy.cardinality
+
+
+  /*
+   * Compatibilidade com a versão intermediária,
+   * em que maximumCardinality continha 1 ou N
+   * também no modo maximum.
+   */
+
+  if (
+    !currentData.cardinality &&
+    currentData.cardinalityMode ===
+      'maximum'
+  ) {
+
+    if (
+      currentData
+        .maximumCardinality ===
+        '1'
+    ) {
+      cardinality =
+        '1'
+    }
+
+
+    if (
+      currentData
+        .maximumCardinality ===
+        'N'
+    ) {
+      cardinality =
+        'N'
+    }
+
+
+    if (
+      currentData
+        .maximumCardinality ===
+        'M'
+    ) {
+      cardinality =
+        'M'
+    }
+
+  }
+
+
+  /* =====================================================
+     MIN-MAX
+     ===================================================== */
+
+  const minimum =
+    currentData
+      .minimumCardinality ??
+    legacy.minimum
+
+
+  const maximum =
+    currentData
+      .maximumCardinality ??
+    legacy.maximum
+
+
+  return {
+    ...edge,
+
+    type:
+      'erEdge',
+
+    data: {
+      ...currentData,
+
+      /*
+       * Mantemos uma cópia do modo na aresta
+       * para facilitar EREdge e Inspector.
+       *
+       * A fonte oficial é o relacionamento.
+       */
+
+      cardinalityMode:
+        relationshipMode,
+
+      cardinality,
+
+      minimumCardinality:
+        minimum,
+
+      maximumCardinality:
+        maximum,
+
+      showCardinality:
+        true,
+
+      cardinalityEndpoint:
+        notation
+          .cardinalityEndpoint,
+
+      dashed:
+        notation.dashed,
+    },
+  }
+}
+
+
+/* =========================================================
+   NORMALIZAR DIAGRAMA
+   ========================================================= */
+
+function normalizeDiagram(
+  diagram:
+    ERDiagram,
+): ERDiagram {
+
+  const clonedNodes =
+    structuredClone(
+      diagram.nodes,
+    )
+
+
+  const clonedEdges =
+    structuredClone(
+      diagram.edges,
+    )
+
+
+  /*
+   * Primeiro normalizamos os relacionamentos.
+   *
+   * O modo de cardinalidade pertence
+   * conceitualmente ao relacionamento.
+   */
+
+  const normalizedNodes =
+    clonedNodes.map(
+      (node):
+        ERNode => {
+
+        if (
+          node.data.kind !==
+          'relationship'
+        ) {
+          return node
+        }
+
+
+        return {
+          ...node,
+
+          data: {
+            ...node.data,
+
+            cardinalityMode:
+              inferRelationshipMode(
+                node,
+                clonedEdges,
+              ),
+          },
+        }
+      },
+    )
+
+
+  /*
+   * Depois normalizamos as arestas,
+   * agora já conhecendo o modo de cada
+   * relacionamento.
+   */
+
+  const normalizedEdges =
+    clonedEdges.map(
+      (edge) =>
+        normalizeEdge(
+          edge,
+          normalizedNodes,
+        ),
+    )
+
+
+  return {
+    ...diagram,
+
+    nodes:
+      normalizedNodes,
+
+    edges:
+      normalizedEdges,
+  }
+}
+
+
+/* =========================================================
    HELPERS DAS ARESTAS DO EXEMPLO
    ========================================================= */
 
 function createAttributeEdge(
-  id: string,
-  source: string,
-  target: string,
-  sourceHandle: HandleSide,
-  targetHandle: HandleSide,
+  id:
+    string,
+
+  source:
+    string,
+
+  target:
+    string,
+
+  sourceHandle:
+    HandleSide,
+
+  targetHandle:
+    HandleSide,
 ): EREdge {
+
   return {
     id,
     source,
     target,
+
     sourceHandle,
     targetHandle,
-    type: 'erEdge',
+
+    type:
+      'erEdge',
 
     data: {
-      sourceCardinality: '1',
-      targetCardinality: '1',
-      showCardinality: false,
+      showCardinality:
+        false,
     },
   }
 }
 
 
 function createRelationshipEdge(
-  id: string,
-  source: string,
-  target: string,
-  cardinality: CardinalityValue,
-  sourceHandle: HandleSide,
-  targetHandle: HandleSide,
+  id:
+    string,
+
+  source:
+    string,
+
+  target:
+    string,
+
+  cardinality:
+    MaximumCardinality,
+
+  sourceHandle:
+    HandleSide,
+
+  targetHandle:
+    HandleSide,
 ): EREdge {
+
   return {
     id,
     source,
     target,
+
     sourceHandle,
     targetHandle,
-    type: 'erEdge',
 
-    /*
-     * Usamos o mesmo valor nas duas extremidades porque
-     * o componente atual da aresta trabalha com
-     * sourceCardinality e targetCardinality.
-     *
-     * A cardinalidade conceitualmente relevante é
-     * a que está associada à entidade.
-     */
+    type:
+      'erEdge',
+
     data: {
-      sourceCardinality: cardinality,
-      targetCardinality: cardinality,
-      showCardinality: true,
+
+      /*
+       * Cópia do modo para renderização
+       * e compatibilidade.
+       */
+
+      cardinalityMode:
+        'maximum',
+
+      /*
+       * Cardinalidade máxima simples.
+       */
+
+      cardinality,
+
+      /*
+       * Mantemos também valores iniciais
+       * para permitir mudar posteriormente
+       * para min-max.
+       */
+
+      minimumCardinality:
+        '0',
+
+      maximumCardinality:
+        cardinality === 'M'
+          ? 'N'
+          : cardinality,
+
+      cardinalityEndpoint:
+        'source',
+
+      showCardinality:
+        true,
     },
   }
 }
@@ -163,7 +985,8 @@ function createRelationshipEdge(
    EXEMPLO TECHMASTER
    ========================================================= */
 
-const exampleNodes: ERNode[] = [
+const exampleNodes:
+  ERNode[] = [
 
   /* =====================================================
      ENTIDADES
@@ -179,10 +1002,14 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'ALUNO',
-      kind: 'entity',
+      label:
+        'ALUNO',
+
+      kind:
+        'entity',
     },
   },
+
 
   {
     id: 'curso',
@@ -194,10 +1021,14 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'CURSO',
-      kind: 'entity',
+      label:
+        'CURSO',
+
+      kind:
+        'entity',
     },
   },
+
 
   {
     id: 'professor',
@@ -209,10 +1040,14 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'PROFESSOR',
-      kind: 'entity',
+      label:
+        'PROFESSOR',
+
+      kind:
+        'entity',
     },
   },
+
 
   {
     id: 'turma',
@@ -224,8 +1059,11 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'TURMA',
-      kind: 'entity',
+      label:
+        'TURMA',
+
+      kind:
+        'entity',
     },
   },
 
@@ -244,10 +1082,17 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'MATRÍCULA',
-      kind: 'relationship',
+      label:
+        'MATRÍCULA',
+
+      kind:
+        'relationship',
+
+      cardinalityMode:
+        'maximum',
     },
   },
+
 
   {
     id: 'leciona',
@@ -259,10 +1104,17 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'LECIONA',
-      kind: 'relationship',
+      label:
+        'LECIONA',
+
+      kind:
+        'relationship',
+
+      cardinalityMode:
+        'maximum',
     },
   },
+
 
   {
     id: 'pertence',
@@ -274,8 +1126,14 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'PERTENCE',
-      kind: 'relationship',
+      label:
+        'PERTENCE',
+
+      kind:
+        'relationship',
+
+      cardinalityMode:
+        'maximum',
     },
   },
 
@@ -285,8 +1143,11 @@ const exampleNodes: ERNode[] = [
      ===================================================== */
 
   {
-    id: 'aluno-cpf',
-    type: 'attribute',
+    id:
+      'aluno-cpf',
+
+    type:
+      'attribute',
 
     position: {
       x: 0,
@@ -294,15 +1155,24 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'CPF',
-      kind: 'attribute',
-      primaryKey: true,
+      label:
+        'CPF',
+
+      kind:
+        'attribute',
+
+      primaryKey:
+        true,
     },
   },
 
+
   {
-    id: 'aluno-nome',
-    type: 'attribute',
+    id:
+      'aluno-nome',
+
+    type:
+      'attribute',
 
     position: {
       x: 0,
@@ -310,14 +1180,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Nome',
-      kind: 'attribute',
+      label:
+        'Nome',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'aluno-data-nascimento',
-    type: 'attribute',
+    id:
+      'aluno-data-nascimento',
+
+    type:
+      'attribute',
 
     position: {
       x: 0,
@@ -325,14 +1202,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'DataNascimento',
-      kind: 'attribute',
+      label:
+        'DataNascimento',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'aluno-email',
-    type: 'attribute',
+    id:
+      'aluno-email',
+
+    type:
+      'attribute',
 
     position: {
       x: 0,
@@ -340,8 +1224,11 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Email',
-      kind: 'attribute',
+      label:
+        'Email',
+
+      kind:
+        'attribute',
     },
   },
 
@@ -351,8 +1238,11 @@ const exampleNodes: ERNode[] = [
      ===================================================== */
 
   {
-    id: 'curso-id',
-    type: 'attribute',
+    id:
+      'curso-id',
+
+    type:
+      'attribute',
 
     position: {
       x: 820,
@@ -360,15 +1250,24 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'ID_Curso',
-      kind: 'attribute',
-      primaryKey: true,
+      label:
+        'ID_Curso',
+
+      kind:
+        'attribute',
+
+      primaryKey:
+        true,
     },
   },
 
+
   {
-    id: 'curso-nome',
-    type: 'attribute',
+    id:
+      'curso-nome',
+
+    type:
+      'attribute',
 
     position: {
       x: 1000,
@@ -376,14 +1275,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Nome',
-      kind: 'attribute',
+      label:
+        'Nome',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'curso-carga',
-    type: 'attribute',
+    id:
+      'curso-carga',
+
+    type:
+      'attribute',
 
     position: {
       x: 1190,
@@ -391,14 +1297,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'CargaHoraria',
-      kind: 'attribute',
+      label:
+        'CargaHoraria',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'curso-nivel',
-    type: 'attribute',
+    id:
+      'curso-nivel',
+
+    type:
+      'attribute',
 
     position: {
       x: 1320,
@@ -406,14 +1319,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Nivel',
-      kind: 'attribute',
+      label:
+        'Nivel',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'curso-area',
-    type: 'attribute',
+    id:
+      'curso-area',
+
+    type:
+      'attribute',
 
     position: {
       x: 1320,
@@ -421,8 +1341,11 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Area',
-      kind: 'attribute',
+      label:
+        'Area',
+
+      kind:
+        'attribute',
     },
   },
 
@@ -432,8 +1355,11 @@ const exampleNodes: ERNode[] = [
      ===================================================== */
 
   {
-    id: 'professor-cpf',
-    type: 'attribute',
+    id:
+      'professor-cpf',
+
+    type:
+      'attribute',
 
     position: {
       x: 20,
@@ -441,15 +1367,24 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'CPF',
-      kind: 'attribute',
-      primaryKey: true,
+      label:
+        'CPF',
+
+      kind:
+        'attribute',
+
+      primaryKey:
+        true,
     },
   },
 
+
   {
-    id: 'professor-nome',
-    type: 'attribute',
+    id:
+      'professor-nome',
+
+    type:
+      'attribute',
 
     position: {
       x: 20,
@@ -457,14 +1392,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Nome',
-      kind: 'attribute',
+      label:
+        'Nome',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'professor-especialidade',
-    type: 'attribute',
+    id:
+      'professor-especialidade',
+
+    type:
+      'attribute',
 
     position: {
       x: 20,
@@ -472,8 +1414,11 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Especialidade',
-      kind: 'attribute',
+      label:
+        'Especialidade',
+
+      kind:
+        'attribute',
     },
   },
 
@@ -483,8 +1428,11 @@ const exampleNodes: ERNode[] = [
      ===================================================== */
 
   {
-    id: 'turma-id',
-    type: 'attribute',
+    id:
+      'turma-id',
+
+    type:
+      'attribute',
 
     position: {
       x: 1320,
@@ -492,15 +1440,24 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'ID_Turma',
-      kind: 'attribute',
-      primaryKey: true,
+      label:
+        'ID_Turma',
+
+      kind:
+        'attribute',
+
+      primaryKey:
+        true,
     },
   },
 
+
   {
-    id: 'turma-data-inicio',
-    type: 'attribute',
+    id:
+      'turma-data-inicio',
+
+    type:
+      'attribute',
 
     position: {
       x: 1340,
@@ -508,14 +1465,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'DataInicio',
-      kind: 'attribute',
+      label:
+        'DataInicio',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'turma-data-termino',
-    type: 'attribute',
+    id:
+      'turma-data-termino',
+
+    type:
+      'attribute',
 
     position: {
       x: 1340,
@@ -523,14 +1487,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'DataTermino',
-      kind: 'attribute',
+      label:
+        'DataTermino',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'turma-turno',
-    type: 'attribute',
+    id:
+      'turma-turno',
+
+    type:
+      'attribute',
 
     position: {
       x: 1190,
@@ -538,8 +1509,11 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'Turno',
-      kind: 'attribute',
+      label:
+        'Turno',
+
+      kind:
+        'attribute',
     },
   },
 
@@ -549,8 +1523,11 @@ const exampleNodes: ERNode[] = [
      ===================================================== */
 
   {
-    id: 'matricula-data',
-    type: 'attribute',
+    id:
+      'matricula-data',
+
+    type:
+      'attribute',
 
     position: {
       x: 500,
@@ -558,14 +1535,21 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'DataMatricula',
-      kind: 'attribute',
+      label:
+        'DataMatricula',
+
+      kind:
+        'attribute',
     },
   },
 
+
   {
-    id: 'matricula-nota',
-    type: 'attribute',
+    id:
+      'matricula-nota',
+
+    type:
+      'attribute',
 
     position: {
       x: 710,
@@ -573,8 +1557,11 @@ const exampleNodes: ERNode[] = [
     },
 
     data: {
-      label: 'NotaFinal',
-      kind: 'attribute',
+      label:
+        'NotaFinal',
+
+      kind:
+        'attribute',
     },
   },
 ]
@@ -584,7 +1571,8 @@ const exampleNodes: ERNode[] = [
    LIGAÇÕES DO EXEMPLO
    ========================================================= */
 
-const exampleEdges: EREdge[] = [
+const exampleEdges:
+  EREdge[] = [
 
   /* =====================================================
      ATRIBUTOS DE ALUNO
@@ -598,6 +1586,7 @@ const exampleEdges: EREdge[] = [
     'right',
   ),
 
+
   createAttributeEdge(
     'e-aluno-nome',
     'aluno',
@@ -606,6 +1595,7 @@ const exampleEdges: EREdge[] = [
     'right',
   ),
 
+
   createAttributeEdge(
     'e-aluno-data',
     'aluno',
@@ -613,6 +1603,7 @@ const exampleEdges: EREdge[] = [
     'left',
     'right',
   ),
+
 
   createAttributeEdge(
     'e-aluno-email',
@@ -635,6 +1626,7 @@ const exampleEdges: EREdge[] = [
     'bottom',
   ),
 
+
   createAttributeEdge(
     'e-curso-nome',
     'curso',
@@ -642,6 +1634,7 @@ const exampleEdges: EREdge[] = [
     'top',
     'bottom',
   ),
+
 
   createAttributeEdge(
     'e-curso-carga',
@@ -651,6 +1644,7 @@ const exampleEdges: EREdge[] = [
     'bottom',
   ),
 
+
   createAttributeEdge(
     'e-curso-nivel',
     'curso',
@@ -658,6 +1652,7 @@ const exampleEdges: EREdge[] = [
     'right',
     'left',
   ),
+
 
   createAttributeEdge(
     'e-curso-area',
@@ -680,6 +1675,7 @@ const exampleEdges: EREdge[] = [
     'right',
   ),
 
+
   createAttributeEdge(
     'e-professor-nome',
     'professor',
@@ -687,6 +1683,7 @@ const exampleEdges: EREdge[] = [
     'left',
     'right',
   ),
+
 
   createAttributeEdge(
     'e-professor-especialidade',
@@ -709,6 +1706,7 @@ const exampleEdges: EREdge[] = [
     'left',
   ),
 
+
   createAttributeEdge(
     'e-turma-data-inicio',
     'turma',
@@ -717,6 +1715,7 @@ const exampleEdges: EREdge[] = [
     'left',
   ),
 
+
   createAttributeEdge(
     'e-turma-data-termino',
     'turma',
@@ -724,6 +1723,7 @@ const exampleEdges: EREdge[] = [
     'right',
     'left',
   ),
+
 
   createAttributeEdge(
     'e-turma-turno',
@@ -735,7 +1735,7 @@ const exampleEdges: EREdge[] = [
 
 
   /* =====================================================
-     ATRIBUTOS DO RELACIONAMENTO MATRÍCULA
+     ATRIBUTOS DE MATRÍCULA
      ===================================================== */
 
   createAttributeEdge(
@@ -745,6 +1745,7 @@ const exampleEdges: EREdge[] = [
     'bottom',
     'top',
   ),
+
 
   createAttributeEdge(
     'e-matricula-nota',
@@ -757,9 +1758,6 @@ const exampleEdges: EREdge[] = [
 
   /* =====================================================
      ALUNO N : N TURMA
-
-     Aluno participa de várias matrículas.
-     Uma Turma possui vários alunos.
      ===================================================== */
 
   createRelationshipEdge(
@@ -770,6 +1768,7 @@ const exampleEdges: EREdge[] = [
     'right',
     'left',
   ),
+
 
   createRelationshipEdge(
     'e-turma-matricula',
@@ -794,6 +1793,7 @@ const exampleEdges: EREdge[] = [
     'left',
   ),
 
+
   createRelationshipEdge(
     'e-turma-leciona',
     'turma',
@@ -817,6 +1817,7 @@ const exampleEdges: EREdge[] = [
     'top',
   ),
 
+
   createRelationshipEdge(
     'e-turma-pertence',
     'turma',
@@ -829,16 +1830,29 @@ const exampleEdges: EREdge[] = [
 
 
 /* =========================================================
-   O EXEMPLO É CARREGADO SOMENTE PELO BOTÃO EXEMPLO
+   EXEMPLO
    ========================================================= */
 
-function getExample(): ERDiagram {
-  return {
-    version: 1,
-    name: 'Exemplo - TechMaster',
-    nodes: structuredClone(exampleNodes),
-    edges: structuredClone(exampleEdges),
-  }
+function getExample():
+  ERDiagram {
+
+  return normalizeDiagram({
+    version:
+      1,
+
+    name:
+      'Exemplo - TechMaster',
+
+    nodes:
+      structuredClone(
+        exampleNodes,
+      ),
+
+    edges:
+      structuredClone(
+        exampleEdges,
+      ),
+  })
 }
 
 
@@ -846,29 +1860,51 @@ function getExample(): ERDiagram {
    CARREGAR DIAGRAMA SALVO
    ========================================================= */
 
-function loadDiagram(): ERDiagram | null {
+function loadDiagram():
+  ERDiagram |
+  null {
+
   try {
+
     const stored =
-      localStorage.getItem(STORAGE_KEY)
+      localStorage.getItem(
+        STORAGE_KEY,
+      )
+
 
     if (!stored) {
       return null
     }
 
+
     const parsed =
-      JSON.parse(stored) as ERDiagram
+      JSON.parse(
+        stored,
+      ) as ERDiagram
+
 
     if (
-      parsed.version !== 1 ||
-      !Array.isArray(parsed.nodes) ||
-      !Array.isArray(parsed.edges)
+      parsed.version !==
+        1 ||
+      !Array.isArray(
+        parsed.nodes,
+      ) ||
+      !Array.isArray(
+        parsed.edges,
+      )
     ) {
       return null
     }
 
-    return parsed
+
+    return normalizeDiagram(
+      parsed,
+    )
+
   } catch {
+
     return null
+
   }
 }
 
@@ -878,101 +1914,74 @@ function loadDiagram(): ERDiagram | null {
    ========================================================= */
 
 function makeNode(
-  kind: ERNodeKind,
-  index: number,
+  kind:
+    ERNodeKind,
+
+  index:
+    number,
 ): ERNode {
-  const labels: Record<ERNodeKind, string> = {
-    entity: 'Nova Entidade',
-    weakEntity: 'Entidade Fraca',
-    attribute: 'novo_atributo',
-    relationship: 'relaciona',
+
+  const labels:
+    Record<
+      ERNodeKind,
+      string
+    > = {
+
+    entity:
+      'Nova Entidade',
+
+    weakEntity:
+      'Entidade Fraca',
+
+    attribute:
+      'novo_atributo',
+
+    relationship:
+      'relaciona',
   }
 
-  return {
-    id: crypto.randomUUID(),
 
-    type: kind,
+  return {
+    id:
+      crypto.randomUUID(),
+
+    type:
+      kind,
 
     position: {
-      x: 250 + (index % 4) * 55,
-      y: 130 + (index % 5) * 45,
+      x:
+        250 +
+        (
+          index %
+          4
+        ) *
+        55,
+
+      y:
+        130 +
+        (
+          index %
+          5
+        ) *
+        45,
     },
 
     data: {
-      label: labels[kind],
+      label:
+        labels[kind],
+
       kind,
-    },
-  }
-}
 
-
-/* =========================================================
-   NOTAÇÃO DAS LIGAÇÕES
-   ========================================================= */
-
-function getEdgeNotation(
-  sourceId: string | null | undefined,
-  targetId: string | null | undefined,
-  nodes: ERNode[],
-) {
-  const sourceNode =
-    nodes.find(
-      (node) =>
-        node.id === sourceId,
-    )
-
-  const targetNode =
-    nodes.find(
-      (node) =>
-        node.id === targetId,
-    )
-
-  const sourceKind =
-    sourceNode?.data.kind
-
-  const targetKind =
-    targetNode?.data.kind
-
-
-  const involvesDerivedAttribute =
-    (
-      sourceKind === 'attribute' &&
-      sourceNode?.data.derived
-    ) ||
-    (
-      targetKind === 'attribute' &&
-      targetNode?.data.derived
-    )
-
-
-  const sourceIsEntity =
-    sourceKind === 'entity' ||
-    sourceKind === 'weakEntity'
-
-  const targetIsEntity =
-    targetKind === 'entity' ||
-    targetKind === 'weakEntity'
-
-
-  const isEntityRelationship =
-    (
-      sourceIsEntity &&
-      targetKind === 'relationship'
-    ) ||
-    (
-      sourceKind === 'relationship' &&
-      targetIsEntity
-    )
-
-
-  return {
-    showCardinality:
-      isEntityRelationship,
-
-    dashed:
-      Boolean(
-        involvesDerivedAttribute,
+      ...(
+        kind ===
+        'relationship'
+          ? {
+              cardinalityMode:
+                'maximum' as const,
+            }
+          : {}
       ),
+    },
   }
 }
 
@@ -982,10 +1991,20 @@ function getEdgeNotation(
    ========================================================= */
 
 function isConnectionAllowed(
-  sourceId: string | null | undefined,
-  targetId: string | null | undefined,
-  nodes: ERNode[],
+  sourceId:
+    string |
+    null |
+    undefined,
+
+  targetId:
+    string |
+    null |
+    undefined,
+
+  nodes:
+    ERNode[],
 ) {
+
   if (
     !sourceId ||
     !targetId
@@ -994,12 +2013,9 @@ function isConnectionAllowed(
   }
 
 
-  /*
-   * Não conecta o elemento nele mesmo.
-   */
-
   if (
-    sourceId === targetId
+    sourceId ===
+    targetId
   ) {
     return false
   }
@@ -1008,13 +2024,16 @@ function isConnectionAllowed(
   const sourceNode =
     nodes.find(
       (node) =>
-        node.id === sourceId,
+        node.id ===
+        sourceId,
     )
+
 
   const targetNode =
     nodes.find(
       (node) =>
-        node.id === targetId,
+        node.id ===
+        targetId,
     )
 
 
@@ -1029,21 +2048,25 @@ function isConnectionAllowed(
   const sourceKind =
     sourceNode.data.kind
 
+
   const targetKind =
     targetNode.data.kind
 
 
   const sourceIsEntity =
-    sourceKind === 'entity' ||
-    sourceKind === 'weakEntity'
+    isEntityKind(
+      sourceKind,
+    )
+
 
   const targetIsEntity =
-    targetKind === 'entity' ||
-    targetKind === 'weakEntity'
+    isEntityKind(
+      targetKind,
+    )
 
 
   /* =====================================================
-     ENTIDADE ↔ ENTIDADE = INVÁLIDO
+     ENTIDADE ↔ ENTIDADE
      ===================================================== */
 
   if (
@@ -1055,27 +2078,18 @@ function isConnectionAllowed(
 
 
   /* =====================================================
-     RELACIONAMENTO ↔ RELACIONAMENTO = INVÁLIDO
+     RELACIONAMENTO ↔ RELACIONAMENTO
      ===================================================== */
 
   if (
-    sourceKind === 'relationship' &&
-    targetKind === 'relationship'
+    sourceKind ===
+      'relationship' &&
+    targetKind ===
+      'relationship'
   ) {
     return false
   }
 
-
-  /*
-   * Permitidos:
-   *
-   * Entidade ↔ Atributo
-   * Entidade ↔ Relacionamento
-   * Entidade Fraca ↔ Atributo
-   * Entidade Fraca ↔ Relacionamento
-   * Relacionamento ↔ Atributo
-   * Atributo ↔ Atributo
-   */
 
   return true
 }
@@ -1089,11 +2103,6 @@ export default function App() {
 
   /* =======================================================
      ESTADO INICIAL
-
-     Se houver trabalho salvo, restaura.
-     Caso contrário, inicia em branco.
-
-     O EXEMPLO NÃO É CARREGADO AQUI.
      ======================================================= */
 
   const initial =
@@ -1109,7 +2118,9 @@ export default function App() {
     diagramName,
     setDiagramName,
   ] =
-    useState(initial.name)
+    useState(
+      initial.name,
+    )
 
 
   const [
@@ -1150,7 +2161,9 @@ export default function App() {
     saved,
     setSaved,
   ] =
-    useState(true)
+    useState(
+      true,
+    )
 
 
   /* =======================================================
@@ -1168,8 +2181,11 @@ export default function App() {
       ReactFlowInstance<
         ERNode,
         EREdge
-      > | null
-    >(null)
+      > |
+      null
+    >(
+      null,
+    )
 
 
   const clipboardRef =
@@ -1180,17 +2196,23 @@ export default function App() {
 
 
   const pasteCountRef =
-    useRef(0)
+    useRef(
+      0,
+    )
 
 
   const historyRef =
-    useRef<DiagramSnapshot[]>(
+    useRef<
+      DiagramSnapshot[]
+    >(
       [],
     )
 
 
   const futureRef =
-    useRef<DiagramSnapshot[]>(
+    useRef<
+      DiagramSnapshot[]
+    >(
       [],
     )
 
@@ -1243,10 +2265,14 @@ export default function App() {
           diagramName,
 
         nodes:
-          structuredClone(nodes),
+          structuredClone(
+            nodes,
+          ),
 
         edges:
-          structuredClone(edges),
+          structuredClone(
+            edges,
+          ),
       }),
       [
         diagramName,
@@ -1261,26 +2287,30 @@ export default function App() {
      ======================================================= */
 
   const saveHistory =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      historyRef.current.push(
-        getCurrentSnapshot(),
-      )
-
-
-      if (
-        historyRef.current.length >
-        MAX_HISTORY
-      ) {
-        historyRef.current.shift()
-      }
+        historyRef.current.push(
+          getCurrentSnapshot(),
+        )
 
 
-      futureRef.current = []
+        if (
+          historyRef.current.length >
+          MAX_HISTORY
+        ) {
+          historyRef.current.shift()
+        }
 
-    }, [
-      getCurrentSnapshot,
-    ])
+
+        futureRef.current =
+          []
+
+      },
+      [
+        getCurrentSnapshot,
+      ],
+    )
 
 
   /* =======================================================
@@ -1305,7 +2335,9 @@ export default function App() {
           ).map(
             (node) => ({
               ...node,
-              selected: false,
+
+              selected:
+                false,
             }),
           ),
         )
@@ -1317,7 +2349,9 @@ export default function App() {
           ).map(
             (edge) => ({
               ...edge,
-              selected: false,
+
+              selected:
+                false,
             }),
           ),
         )
@@ -1326,6 +2360,7 @@ export default function App() {
         setSelectedNodeId(
           undefined,
         )
+
 
         setSelectedEdgeId(
           undefined,
@@ -1340,119 +2375,141 @@ export default function App() {
 
 
   /* =======================================================
-     AJUSTAR VISUALIZAÇÃO AO DIAGRAMA
+     AJUSTAR VISUALIZAÇÃO
      ======================================================= */
 
   const fitDiagram =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      window.setTimeout(
-        () => {
+        window.setTimeout(
+          () => {
 
-          reactFlowRef.current?.fitView({
-            padding: 0.12,
-            duration: 350,
-          })
+            reactFlowRef
+              .current
+              ?.fitView({
+                padding:
+                  0.12,
 
-        },
-        50,
-      )
+                duration:
+                  350,
+              })
 
-    }, [])
+          },
+          50,
+        )
+
+      },
+      [],
+    )
 
 
   /* =======================================================
      AUTOSAVE
      ======================================================= */
 
-  useEffect(() => {
+  useEffect(
+    () => {
 
-    setSaved(false)
-
-
-    const handle =
-      window.setTimeout(
-        () => {
-
-          const diagram:
-            ERDiagram = {
-
-            version: 1,
-
-            name:
-              diagramName,
-
-            nodes,
-
-            edges,
-          }
-
-
-          localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify(
-              diagram,
-            ),
-          )
-
-
-          setSaved(true)
-
-        },
-        250,
+      setSaved(
+        false,
       )
 
 
-    return () =>
-      window.clearTimeout(
-        handle,
-      )
+      const handle =
+        window.setTimeout(
+          () => {
 
-  }, [
-    diagramName,
-    nodes,
-    edges,
-  ])
+            const diagram:
+              ERDiagram = {
+
+              version:
+                1,
+
+              name:
+                diagramName,
+
+              nodes,
+
+              edges,
+            }
+
+
+            localStorage.setItem(
+              STORAGE_KEY,
+
+              JSON.stringify(
+                diagram,
+              ),
+            )
+
+
+            setSaved(
+              true,
+            )
+
+          },
+          250,
+        )
+
+
+      return () =>
+        window.clearTimeout(
+          handle,
+        )
+
+    },
+    [
+      diagramName,
+      nodes,
+      edges,
+    ],
+  )
 
 
   /* =======================================================
      SALVAR MANUALMENTE
-     Ctrl/Cmd + S
      ======================================================= */
 
   const saveDiagram =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const diagram:
-        ERDiagram = {
+        const diagram:
+          ERDiagram = {
 
-        version: 1,
+          version:
+            1,
 
-        name:
-          diagramName,
+          name:
+            diagramName,
 
+          nodes,
+
+          edges,
+        }
+
+
+        localStorage.setItem(
+          STORAGE_KEY,
+
+          JSON.stringify(
+            diagram,
+          ),
+        )
+
+
+        setSaved(
+          true,
+        )
+
+      },
+      [
+        diagramName,
         nodes,
-
         edges,
-      }
-
-
-      localStorage.setItem(
-        STORAGE_KEY,
-
-        JSON.stringify(
-          diagram,
-        ),
-      )
-
-
-      setSaved(true)
-
-    }, [
-      diagramName,
-      nodes,
-      edges,
-    ])
+      ],
+    )
 
 
   /* =======================================================
@@ -1496,6 +2553,38 @@ export default function App() {
           )
 
 
+        const relationshipMode =
+          getRelationshipModeForEdge(
+            connection.source,
+            connection.target,
+            nodes,
+          ) ??
+          'maximum'
+
+
+        const newEdgeData =
+          notation
+            .showCardinality
+            ? {
+                cardinalityMode:
+                  relationshipMode,
+
+                cardinality:
+                  '1' as MaximumCardinality,
+
+                minimumCardinality:
+                  '0',
+
+                maximumCardinality:
+                  '1',
+
+                ...notation,
+              }
+            : {
+                ...notation,
+              }
+
+
         setEdges(
           (current) =>
             addEdge<EREdge>(
@@ -1508,15 +2597,8 @@ export default function App() {
                 type:
                   'erEdge',
 
-                data: {
-                  sourceCardinality:
-                    '1',
-
-                  targetCardinality:
-                    'N',
-
-                  ...notation,
-                },
+                data:
+                  newEdgeData,
               },
 
               current,
@@ -1559,14 +2641,19 @@ export default function App() {
             ...current.map(
               (item) => ({
                 ...item,
-                selected: false,
+
+                selected:
+                  false,
               }),
             ),
 
             {
               ...node,
-              selected: true,
+
+              selected:
+                true,
             },
+
           ],
         )
 
@@ -1576,7 +2663,9 @@ export default function App() {
             current.map(
               (edge) => ({
                 ...edge,
-                selected: false,
+
+                selected:
+                  false,
               }),
             ),
         )
@@ -1585,6 +2674,7 @@ export default function App() {
         setSelectedNodeId(
           node.id,
         )
+
 
         setSelectedEdgeId(
           undefined,
@@ -1609,24 +2699,34 @@ export default function App() {
       (
         diagram:
           ERDiagram,
-        shouldFit = true,
+
+        shouldFit =
+          true,
       ) => {
 
         saveHistory()
 
 
+        const normalized =
+          normalizeDiagram(
+            diagram,
+          )
+
+
         setDiagramName(
-          diagram.name,
+          normalized.name,
         )
 
 
         setNodes(
           structuredClone(
-            diagram.nodes,
+            normalized.nodes,
           ).map(
             (node) => ({
               ...node,
-              selected: false,
+
+              selected:
+                false,
             }),
           ),
         )
@@ -1634,11 +2734,13 @@ export default function App() {
 
         setEdges(
           structuredClone(
-            diagram.edges,
+            normalized.edges,
           ).map(
             (edge) => ({
               ...edge,
-              selected: false,
+
+              selected:
+                false,
             }),
           ),
         )
@@ -1647,6 +2749,7 @@ export default function App() {
         setSelectedNodeId(
           undefined,
         )
+
 
         setSelectedEdgeId(
           undefined,
@@ -1659,7 +2762,10 @@ export default function App() {
 
         if (
           shouldFit &&
-          diagram.nodes.length > 0
+          normalized
+            .nodes
+            .length >
+          0
         ) {
           fitDiagram()
         }
@@ -1679,66 +2785,73 @@ export default function App() {
      ======================================================= */
 
   const newDiagram =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      if (
-        (
-          nodes.length > 0 ||
-          edges.length > 0
-        ) &&
-        !window.confirm(
-          'Criar um novo diagrama em branco? O modelo atual será substituído.',
+        if (
+          (
+            nodes.length >
+              0 ||
+            edges.length >
+              0
+          ) &&
+          !window.confirm(
+            'Criar um novo diagrama em branco? O modelo atual será substituído.',
+          )
+        ) {
+          return
+        }
+
+
+        setDiagram(
+          getEmptyDiagram(),
+          false,
         )
-      ) {
-        return
-      }
 
-
-      setDiagram(
-        getEmptyDiagram(),
-        false,
-      )
-
-    }, [
-      nodes.length,
-      edges.length,
-      setDiagram,
-    ])
+      },
+      [
+        nodes.length,
+        edges.length,
+        setDiagram,
+      ],
+    )
 
 
   /* =======================================================
-     CARREGAR EXEMPLO TECHMASTER
-
-     SOMENTE executado quando o usuário
-     pressiona o botão "Exemplo".
+     EXEMPLO TECHMASTER
      ======================================================= */
 
   const loadExample =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      if (
-        (
-          nodes.length > 0 ||
-          edges.length > 0
-        ) &&
-        !window.confirm(
-          'Carregar o exemplo TechMaster? O diagrama atual será substituído.',
+        if (
+          (
+            nodes.length >
+              0 ||
+            edges.length >
+              0
+          ) &&
+          !window.confirm(
+            'Carregar o exemplo TechMaster? O diagrama atual será substituído.',
+          )
+        ) {
+          return
+        }
+
+
+        setDiagram(
+          getExample(),
+          true,
         )
-      ) {
-        return
-      }
 
-
-      setDiagram(
-        getExample(),
-        true,
-      )
-
-    }, [
-      nodes.length,
-      edges.length,
-      setDiagram,
-    ])
+      },
+      [
+        nodes.length,
+        edges.length,
+        setDiagram,
+      ],
+    )
 
 
   /* =======================================================
@@ -1746,115 +2859,143 @@ export default function App() {
      ======================================================= */
 
   const exportDiagram =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const diagram:
-        ERDiagram = {
+        const diagram:
+          ERDiagram = {
 
-        version: 1,
+          version:
+            1,
 
-        name:
-          diagramName,
+          name:
+            diagramName,
 
+          nodes,
+
+          edges,
+        }
+
+
+        const blob =
+          new Blob(
+            [
+              JSON.stringify(
+                diagram,
+                null,
+                2,
+              ),
+            ],
+            {
+              type:
+                'application/json',
+            },
+          )
+
+
+        const url =
+          URL.createObjectURL(
+            blob,
+          )
+
+
+        const anchor =
+          document.createElement(
+            'a',
+          )
+
+
+        anchor.href =
+          url
+
+
+        anchor.download =
+          `${
+            diagramName
+              .trim()
+              .replace(
+                /[^a-zA-Z0-9_-]+/g,
+                '-',
+              ) ||
+            'modelo-er'
+          }.json`
+
+
+        anchor.click()
+
+
+        URL.revokeObjectURL(
+          url,
+        )
+
+      },
+      [
+        diagramName,
         nodes,
-
         edges,
-      }
+      ],
+    )
 
 
-      const blob =
-        new Blob(
-          [
-            JSON.stringify(
-              diagram,
-              null,
-              2,
-            ),
-          ],
-          {
-            type:
-              'application/json',
-          },
-        )
+  /* =======================================================
+     EXPORTAR PNG
+     ======================================================= */
+
+  const handleExportPng =
+    useCallback(
+      async () => {
+
+        try {
+
+          await exportDiagramAsPng(
+            nodes,
+            diagramName,
+          )
+
+        } catch (error) {
+
+          console.error(
+            'Erro ao exportar PNG:',
+            error,
+          )
 
 
-      const url =
-        URL.createObjectURL(
-          blob,
-        )
+          window.alert(
+            'Não foi possível exportar o diagrama como PNG.',
+          )
 
+        }
 
-      const anchor =
-        document.createElement(
-          'a',
-        )
-
-
-      anchor.href =
-        url
-
-
-      anchor.download =
-        `${diagramName
-          .trim()
-          .replace(
-            /[^a-zA-Z0-9_-]+/g,
-            '-',
-          ) ||
-        'modelo-er'
-        }.json`
-
-
-      anchor.click()
-
-
-      URL.revokeObjectURL(
-        url,
-      )
-
-    }, [
-      diagramName,
-      nodes,
-      edges,
-    ])
+      },
+      [
+        nodes,
+        diagramName,
+      ],
+    )
 
 
   /* =======================================================
      IMPORTAR JSON
      ======================================================= */
 
-  const handleExportPng =
-    useCallback(async () => {
-      try {
-        await exportDiagramAsPng(
-          nodes,
-          diagramName,
-        )
-      } catch (error) {
-        console.error(
-          'Erro ao exportar PNG:',
-          error,
-        )
-
-        window.alert(
-          'Não foi possível exportar o diagrama como PNG.',
-        )
-      }
-    }, [nodes, diagramName])
-
-
   const importDiagram =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      fileInputRef.current?.click()
+        fileInputRef
+          .current
+          ?.click()
 
-    }, [])
+      },
+      [],
+    )
 
 
   const onImportFile =
     useCallback(
       async (
-        file?: File,
+        file?:
+          File,
       ) => {
 
         if (!file) {
@@ -1871,7 +3012,8 @@ export default function App() {
 
 
           if (
-            parsed.version !== 1 ||
+            parsed.version !==
+              1 ||
             !Array.isArray(
               parsed.nodes,
             ) ||
@@ -1899,7 +3041,7 @@ export default function App() {
         } catch {
 
           window.alert(
-            'Não foi possível importar o arquivo. Verifique se ele foi exportado pela Ferramenta.',
+            'Não foi possível importar o arquivo. Verifique se ele foi exportado pelo DERLab.',
           )
 
         } finally {
@@ -1921,585 +3063,640 @@ export default function App() {
 
 
   /* =======================================================
-     ELEMENTOS SELECIONADOS
+     NÓS SELECIONADOS
      ======================================================= */
 
   const getSelectedNodeIds =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      return new Set(
-        nodes
+        return new Set(
+          nodes
 
-          .filter(
-            (node) =>
-              node.selected ||
-              node.id ===
-              selectedNodeId,
-          )
+            .filter(
+              (node) =>
+                node.selected ||
+                node.id ===
+                  selectedNodeId,
+            )
 
-          .map(
-            (node) =>
-              node.id,
-          ),
-      )
+            .map(
+              (node) =>
+                node.id,
+            ),
+        )
 
-    }, [
-      nodes,
-      selectedNodeId,
-    ])
+      },
+      [
+        nodes,
+        selectedNodeId,
+      ],
+    )
 
+
+  /* =======================================================
+     ARESTAS SELECIONADAS
+     ======================================================= */
 
   const getSelectedEdgeIds =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      return new Set(
-        edges
+        return new Set(
+          edges
 
-          .filter(
-            (edge) =>
-              edge.selected ||
-              edge.id ===
-              selectedEdgeId,
-          )
+            .filter(
+              (edge) =>
+                edge.selected ||
+                edge.id ===
+                  selectedEdgeId,
+            )
 
-          .map(
-            (edge) =>
-              edge.id,
-          ),
-      )
+            .map(
+              (edge) =>
+                edge.id,
+            ),
+        )
 
-    }, [
-      edges,
-      selectedEdgeId,
-    ])
+      },
+      [
+        edges,
+        selectedEdgeId,
+      ],
+    )
 
 
   /* =======================================================
      COPIAR
-     Ctrl/Cmd + C
      ======================================================= */
 
   const copySelected =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const selectedNodeIds =
-        getSelectedNodeIds()
-
-
-      if (
-        selectedNodeIds.size === 0
-      ) {
-        return
-      }
+        const selectedNodeIds =
+          getSelectedNodeIds()
 
 
-      const selectedNodes =
-        nodes.filter(
-          (node) =>
-            selectedNodeIds.has(
-              node.id,
+        if (
+          selectedNodeIds.size ===
+          0
+        ) {
+          return
+        }
+
+
+        const selectedNodes =
+          nodes.filter(
+            (node) =>
+              selectedNodeIds.has(
+                node.id,
+              ),
+          )
+
+
+        const selectedEdges =
+          edges.filter(
+            (edge) =>
+              selectedNodeIds.has(
+                edge.source,
+              ) &&
+              selectedNodeIds.has(
+                edge.target,
+              ),
+          )
+
+
+        clipboardRef.current = {
+
+          nodes:
+            structuredClone(
+              selectedNodes,
             ),
-        )
 
-
-      const selectedEdges =
-        edges.filter(
-          (edge) =>
-            selectedNodeIds.has(
-              edge.source,
-            ) &&
-            selectedNodeIds.has(
-              edge.target,
+          edges:
+            structuredClone(
+              selectedEdges,
             ),
-        )
+        }
 
 
-      clipboardRef.current = {
-        nodes:
-          structuredClone(
-            selectedNodes,
-          ),
+        pasteCountRef.current =
+          0
 
-        edges:
-          structuredClone(
-            selectedEdges,
-          ),
-      }
-
-
-      pasteCountRef.current =
-        0
-
-    }, [
-      nodes,
-      edges,
-      getSelectedNodeIds,
-    ])
+      },
+      [
+        nodes,
+        edges,
+        getSelectedNodeIds,
+      ],
+    )
 
 
   /* =======================================================
      COLAR
-     Ctrl/Cmd + V
      ======================================================= */
 
   const pasteSelected =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const clipboard =
-        clipboardRef.current
-
-
-      if (
-        clipboard.nodes.length === 0
-      ) {
-        return
-      }
+        const clipboard =
+          clipboardRef.current
 
 
-      saveHistory()
+        if (
+          clipboard.nodes.length ===
+          0
+        ) {
+          return
+        }
 
 
-      pasteCountRef.current +=
-        1
+        saveHistory()
 
 
-      const offset =
-        40 *
-        pasteCountRef.current
+        pasteCountRef.current +=
+          1
 
 
-      const idMap =
-        new Map<
-          string,
-          string
-        >()
+        const offset =
+          40 *
+          pasteCountRef.current
 
 
-      clipboard.nodes.forEach(
-        (node) => {
+        const idMap =
+          new Map<
+            string,
+            string
+          >()
 
-          idMap.set(
-            node.id,
-            crypto.randomUUID(),
+
+        clipboard.nodes.forEach(
+          (node) => {
+
+            idMap.set(
+              node.id,
+              crypto.randomUUID(),
+            )
+
+          },
+        )
+
+
+        const pastedNodes:
+          ERNode[] =
+          clipboard.nodes.map(
+            (node) => ({
+
+              ...structuredClone(
+                node,
+              ),
+
+              id:
+                idMap.get(
+                  node.id,
+                )!,
+
+              position: {
+
+                x:
+                  node.position.x +
+                  offset,
+
+                y:
+                  node.position.y +
+                  offset,
+              },
+
+              selected:
+                true,
+
+            }),
           )
 
-        },
-      )
 
-
-      const pastedNodes:
-        ERNode[] =
-        clipboard.nodes.map(
-          (node) => ({
-
-            ...structuredClone(
-              node,
-            ),
-
-            id:
-              idMap.get(
-                node.id,
-              )!,
-
-            position: {
-              x:
-                node.position.x +
-                offset,
-
-              y:
-                node.position.y +
-                offset,
-            },
-
-            selected:
-              true,
-          }),
-        )
-
-
-      const pastedEdges:
-        EREdge[] =
-        clipboard.edges.map(
-          (edge) => ({
-
-            ...structuredClone(
-              edge,
-            ),
-
-            id:
-              crypto.randomUUID(),
-
-            source:
-              idMap.get(
-                edge.source,
-              )!,
-
-            target:
-              idMap.get(
-                edge.target,
-              )!,
-
-            selected:
-              false,
-          }),
-        )
-
-
-      setNodes(
-        (current) => [
-
-          ...current.map(
-            (node) => ({
-              ...node,
-              selected: false,
-            }),
-          ),
-
-          ...pastedNodes,
-        ],
-      )
-
-
-      setEdges(
-        (current) => [
-
-          ...current.map(
+        const pastedEdges:
+          EREdge[] =
+          clipboard.edges.map(
             (edge) => ({
-              ...edge,
-              selected: false,
+
+              ...structuredClone(
+                edge,
+              ),
+
+              id:
+                crypto.randomUUID(),
+
+              source:
+                idMap.get(
+                  edge.source,
+                )!,
+
+              target:
+                idMap.get(
+                  edge.target,
+                )!,
+
+              selected:
+                false,
+
             }),
-          ),
-
-          ...pastedEdges,
-        ],
-      )
+          )
 
 
-      if (
-        pastedNodes.length === 1
-      ) {
-        setSelectedNodeId(
-          pastedNodes[0].id,
+        setNodes(
+          (current) => [
+
+            ...current.map(
+              (node) => ({
+                ...node,
+
+                selected:
+                  false,
+              }),
+            ),
+
+            ...pastedNodes,
+
+          ],
         )
-      } else {
-        setSelectedNodeId(
+
+
+        setEdges(
+          (current) => [
+
+            ...current.map(
+              (edge) => ({
+                ...edge,
+
+                selected:
+                  false,
+              }),
+            ),
+
+            ...pastedEdges,
+
+          ],
+        )
+
+
+        if (
+          pastedNodes.length ===
+          1
+        ) {
+          setSelectedNodeId(
+            pastedNodes[0].id,
+          )
+        } else {
+          setSelectedNodeId(
+            undefined,
+          )
+        }
+
+
+        setSelectedEdgeId(
           undefined,
         )
-      }
 
-
-      setSelectedEdgeId(
-        undefined,
-      )
-
-    }, [
-      setNodes,
-      setEdges,
-      saveHistory,
-    ])
+      },
+      [
+        setNodes,
+        setEdges,
+        saveHistory,
+      ],
+    )
 
 
   /* =======================================================
      EXCLUIR
-     Delete / Backspace
      ======================================================= */
 
   const deleteSelected =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const selectedNodeIds =
-        getSelectedNodeIds()
-
-      const selectedEdgeIds =
-        getSelectedEdgeIds()
+        const selectedNodeIds =
+          getSelectedNodeIds()
 
 
-      if (
-        selectedNodeIds.size === 0 &&
-        selectedEdgeIds.size === 0
-      ) {
-        return
-      }
+        const selectedEdgeIds =
+          getSelectedEdgeIds()
 
 
-      saveHistory()
+        if (
+          selectedNodeIds.size ===
+            0 &&
+          selectedEdgeIds.size ===
+            0
+        ) {
+          return
+        }
 
 
-      setNodes(
-        (current) =>
-          current.filter(
-            (node) =>
-              !selectedNodeIds.has(
-                node.id,
-              ),
-          ),
-      )
+        saveHistory()
 
 
-      setEdges(
-        (current) =>
-          current.filter(
-            (edge) =>
-
-              !selectedEdgeIds.has(
-                edge.id,
-              ) &&
-
-              !selectedNodeIds.has(
-                edge.source,
-              ) &&
-
-              !selectedNodeIds.has(
-                edge.target,
-              ),
-          ),
-      )
+        setNodes(
+          (current) =>
+            current.filter(
+              (node) =>
+                !selectedNodeIds.has(
+                  node.id,
+                ),
+            ),
+        )
 
 
-      setSelectedNodeId(
-        undefined,
-      )
+        setEdges(
+          (current) =>
+            current.filter(
+              (edge) =>
 
-      setSelectedEdgeId(
-        undefined,
-      )
+                !selectedEdgeIds.has(
+                  edge.id,
+                ) &&
 
-    }, [
-      getSelectedNodeIds,
-      getSelectedEdgeIds,
-      setNodes,
-      setEdges,
-      saveHistory,
-    ])
+                !selectedNodeIds.has(
+                  edge.source,
+                ) &&
+
+                !selectedNodeIds.has(
+                  edge.target,
+                ),
+            ),
+        )
+
+
+        setSelectedNodeId(
+          undefined,
+        )
+
+
+        setSelectedEdgeId(
+          undefined,
+        )
+
+      },
+      [
+        getSelectedNodeIds,
+        getSelectedEdgeIds,
+        setNodes,
+        setEdges,
+        saveHistory,
+      ],
+    )
 
 
   /* =======================================================
      RECORTAR
-     Ctrl/Cmd + X
      ======================================================= */
 
   const cutSelected =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const selectedNodeIds =
-        getSelectedNodeIds()
-
-      const selectedEdgeIds =
-        getSelectedEdgeIds()
+        const selectedNodeIds =
+          getSelectedNodeIds()
 
 
-      if (
-        selectedNodeIds.size === 0 &&
-        selectedEdgeIds.size === 0
-      ) {
-        return
-      }
+        const selectedEdgeIds =
+          getSelectedEdgeIds()
 
 
-      copySelected()
-      deleteSelected()
+        if (
+          selectedNodeIds.size ===
+            0 &&
+          selectedEdgeIds.size ===
+            0
+        ) {
+          return
+        }
 
-    }, [
-      getSelectedNodeIds,
-      getSelectedEdgeIds,
-      copySelected,
-      deleteSelected,
-    ])
+
+        copySelected()
+
+        deleteSelected()
+
+      },
+      [
+        getSelectedNodeIds,
+        getSelectedEdgeIds,
+        copySelected,
+        deleteSelected,
+      ],
+    )
 
 
   /* =======================================================
      SELECIONAR TUDO
-     Ctrl/Cmd + A
      ======================================================= */
 
   const selectAll =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      setNodes(
-        (current) =>
-          current.map(
-            (node) => ({
-              ...node,
-              selected: true,
-            }),
-          ),
-      )
+        setNodes(
+          (current) =>
+            current.map(
+              (node) => ({
+                ...node,
 
-
-      setEdges(
-        (current) =>
-          current.map(
-            (edge) => ({
-              ...edge,
-              selected: true,
-            }),
-          ),
-      )
+                selected:
+                  true,
+              }),
+            ),
+        )
 
 
-      setSelectedNodeId(
-        undefined,
-      )
+        setEdges(
+          (current) =>
+            current.map(
+              (edge) => ({
+                ...edge,
 
-      setSelectedEdgeId(
-        undefined,
-      )
+                selected:
+                  true,
+              }),
+            ),
+        )
 
-    }, [
-      setNodes,
-      setEdges,
-    ])
+
+        setSelectedNodeId(
+          undefined,
+        )
+
+
+        setSelectedEdgeId(
+          undefined,
+        )
+
+      },
+      [
+        setNodes,
+        setEdges,
+      ],
+    )
 
 
   /* =======================================================
      LIMPAR SELEÇÃO
-     ESC
      ======================================================= */
 
   const clearSelection =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      setNodes(
-        (current) =>
-          current.map(
-            (node) => ({
-              ...node,
-              selected: false,
-            }),
-          ),
-      )
+        setNodes(
+          (current) =>
+            current.map(
+              (node) => ({
+                ...node,
 
-
-      setEdges(
-        (current) =>
-          current.map(
-            (edge) => ({
-              ...edge,
-              selected: false,
-            }),
-          ),
-      )
+                selected:
+                  false,
+              }),
+            ),
+        )
 
 
-      setSelectedNodeId(
-        undefined,
-      )
+        setEdges(
+          (current) =>
+            current.map(
+              (edge) => ({
+                ...edge,
 
-      setSelectedEdgeId(
-        undefined,
-      )
+                selected:
+                  false,
+              }),
+            ),
+        )
 
-    }, [
-      setNodes,
-      setEdges,
-    ])
+
+        setSelectedNodeId(
+          undefined,
+        )
+
+
+        setSelectedEdgeId(
+          undefined,
+        )
+
+      },
+      [
+        setNodes,
+        setEdges,
+      ],
+    )
 
 
   /* =======================================================
      DUPLICAR
-     Ctrl/Cmd + D
      ======================================================= */
 
   const duplicateSelected =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const selectedNodeIds =
-        getSelectedNodeIds()
-
-
-      if (
-        selectedNodeIds.size === 0
-      ) {
-        return
-      }
+        const selectedNodeIds =
+          getSelectedNodeIds()
 
 
-      copySelected()
-      pasteSelected()
+        if (
+          selectedNodeIds.size ===
+          0
+        ) {
+          return
+        }
 
-    }, [
-      getSelectedNodeIds,
-      copySelected,
-      pasteSelected,
-    ])
+
+        copySelected()
+
+        pasteSelected()
+
+      },
+      [
+        getSelectedNodeIds,
+        copySelected,
+        pasteSelected,
+      ],
+    )
 
 
   /* =======================================================
      UNDO
-     Ctrl/Cmd + Z
      ======================================================= */
 
   const undo =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const previous =
-        historyRef.current.pop()
-
-
-      if (!previous) {
-        return
-      }
+        const previous =
+          historyRef.current.pop()
 
 
-      futureRef.current.push(
-        getCurrentSnapshot(),
-      )
+        if (!previous) {
+          return
+        }
 
 
-      applySnapshot(
-        previous,
-      )
+        futureRef.current.push(
+          getCurrentSnapshot(),
+        )
 
-    }, [
-      getCurrentSnapshot,
-      applySnapshot,
-    ])
+
+        applySnapshot(
+          previous,
+        )
+
+      },
+      [
+        getCurrentSnapshot,
+        applySnapshot,
+      ],
+    )
 
 
   /* =======================================================
      REDO
-
-     Windows/Linux:
-     Ctrl + Y
-     Ctrl + Shift + Z
-
-     macOS:
-     Cmd + Shift + Z
      ======================================================= */
 
   const redo =
-    useCallback(() => {
+    useCallback(
+      () => {
 
-      const next =
-        futureRef.current.pop()
-
-
-      if (!next) {
-        return
-      }
+        const next =
+          futureRef.current.pop()
 
 
-      historyRef.current.push(
-        getCurrentSnapshot(),
-      )
+        if (!next) {
+          return
+        }
 
 
-      if (
-        historyRef.current.length >
-        MAX_HISTORY
-      ) {
-        historyRef.current.shift()
-      }
+        historyRef.current.push(
+          getCurrentSnapshot(),
+        )
 
 
-      applySnapshot(
-        next,
-      )
+        if (
+          historyRef.current.length >
+          MAX_HISTORY
+        ) {
+          historyRef.current.shift()
+        }
 
-    }, [
-      getCurrentSnapshot,
-      applySnapshot,
-    ])
+
+        applySnapshot(
+          next,
+        )
+
+      },
+      [
+        getCurrentSnapshot,
+        applySnapshot,
+      ],
+    )
 
 
   /* =======================================================
@@ -2519,7 +3716,8 @@ export default function App() {
         const nextNodes =
           nodes.map(
             (node) =>
-              node.id === updated.id
+              node.id ===
+                updated.id
                 ? updated
                 : node,
           )
@@ -2530,48 +3728,38 @@ export default function App() {
         )
 
 
+        /*
+         * Muito importante:
+         *
+         * Se o usuário trocar o relacionamento
+         * de "maximum" para "minmax", todas as
+         * arestas conectadas precisam receber
+         * imediatamente o novo modo.
+         *
+         * normalizeEdge consulta o relacionamento
+         * atualizado em nextNodes.
+         */
+
         setEdges(
           (currentEdges) =>
             currentEdges.map(
-              (edge) => {
+              (edge):
+                EREdge => {
 
                 if (
                   edge.source !==
-                  updated.id &&
+                    updated.id &&
                   edge.target !==
-                  updated.id
+                    updated.id
                 ) {
                   return edge
                 }
 
 
-                const notation =
-                  getEdgeNotation(
-                    edge.source,
-                    edge.target,
-                    nextNodes,
-                  )
-
-
-                return {
-                  ...edge,
-
-                  data: {
-                    sourceCardinality:
-                      edge.data
-                        ?.sourceCardinality ??
-                      '1',
-
-                    targetCardinality:
-                      edge.data
-                        ?.targetCardinality ??
-                      'N',
-
-                    ...edge.data,
-
-                    ...notation,
-                  },
-                }
+                return normalizeEdge(
+                  edge,
+                  nextNodes,
+                )
 
               },
             ),
@@ -2601,18 +3789,36 @@ export default function App() {
         saveHistory()
 
 
+        /*
+         * Normalizamos para manter:
+         *
+         * - cardinalityEndpoint;
+         * - modo do relacionamento;
+         * - showCardinality;
+         * - dashed.
+         */
+
+        const normalized =
+          normalizeEdge(
+            updated,
+            nodes,
+          )
+
+
         setEdges(
           (current) =>
             current.map(
               (edge) =>
-                edge.id === updated.id
-                  ? updated
+                edge.id ===
+                  normalized.id
+                  ? normalized
                   : edge,
             ),
         )
 
       },
       [
+        nodes,
         setEdges,
         saveHistory,
       ],
@@ -2620,10 +3826,11 @@ export default function App() {
 
 
   /* =======================================================
-     ATALHOS DE TECLADO
+     ATALHOS
      ======================================================= */
 
   useKeyboardShortcuts({
+
     onCopy:
       copySelected,
 
@@ -2653,6 +3860,7 @@ export default function App() {
 
     onEscape:
       clearSelection,
+
   })
 
 
@@ -2732,8 +3940,6 @@ export default function App() {
         onImport={
           importDiagram
         }
-
-
 
         onDeleteSelected={
           deleteSelected
@@ -2816,13 +4022,15 @@ export default function App() {
 
 
             /* =============================================
-               INSTÂNCIA DO REACT FLOW
+               INSTÂNCIA
                ============================================= */
 
             onInit={
               (instance) => {
+
                 reactFlowRef.current =
                   instance
+
               }
             }
 
@@ -2867,11 +4075,15 @@ export default function App() {
                ============================================= */
 
             onNodeClick={
-              (_, node) => {
+              (
+                _,
+                node,
+              ) => {
 
                 setSelectedNodeId(
                   node.id,
                 )
+
 
                 setSelectedEdgeId(
                   undefined,
@@ -2886,11 +4098,15 @@ export default function App() {
                ============================================= */
 
             onEdgeClick={
-              (_, edge) => {
+              (
+                _,
+                edge,
+              ) => {
 
                 setSelectedEdgeId(
                   edge.id,
                 )
+
 
                 setSelectedNodeId(
                   undefined,
@@ -2910,6 +4126,7 @@ export default function App() {
                 setSelectedNodeId(
                   undefined,
                 )
+
 
                 setSelectedEdgeId(
                   undefined,
@@ -2937,16 +4154,24 @@ export default function App() {
                ============================================= */
 
             defaultViewport={{
-              x: 0,
-              y: 0,
-              zoom: 0.75,
+              x:
+                0,
+
+              y:
+                0,
+
+              zoom:
+                0.75,
             }}
 
             fitView
 
             fitViewOptions={{
-              padding: 0.2,
-              maxZoom: 0.9,
+              padding:
+                0.2,
+
+              maxZoom:
+                0.9,
             }}
 
             snapToGrid
@@ -2966,7 +4191,7 @@ export default function App() {
 
 
             /* =============================================
-               DELETE É CONTROLADO PELO NOSSO HOOK
+               DELETE CONTROLADO PELO HOOK
                ============================================= */
 
             deleteKeyCode={
@@ -2975,14 +4200,21 @@ export default function App() {
           >
 
             <Background
-              gap={20}
-              size={1}
+              gap={
+                20
+              }
+
+              size={
+                1
+              }
             />
+
 
             <MiniMap
               pannable
               zoomable
             />
+
 
             <Controls />
 
@@ -2995,8 +4227,10 @@ export default function App() {
 
           <div
             className="save-status"
+
             aria-live="polite"
           >
+
             <span
               className={
                 saved
@@ -3005,11 +4239,13 @@ export default function App() {
               }
             />
 
+
             {
               saved
                 ? 'Salvo no navegador'
                 : 'Salvando...'
             }
+
           </div>
 
         </div>
@@ -3047,12 +4283,18 @@ export default function App() {
       <footer className="statusbar">
 
         <span>
-          {nodes.length} elementos
+          {nodes.length}
+          {' '}
+          elementos
         </span>
 
+
         <span>
-          {edges.length} ligações
+          {edges.length}
+          {' '}
+          ligações
         </span>
+
 
         <span>
           Arraste · conecte · selecione · edite
